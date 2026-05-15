@@ -2,7 +2,13 @@
   <v-app>
     <v-app-bar color="green-darken-3" elevation="2">
       <v-app-bar-title>
-        <span class="font-weight-bold">⚽ Bolão da Copa</span>
+        <router-link :to="{ name: 'Home' }" class="d-flex align-center" style="text-decoration:none">
+          <img
+            src="@/image/logo.png"
+            alt="Bolão Copa 26"
+            style="height:38px;width:auto;display:block"
+          />
+        </router-link>
       </v-app-bar-title>
 
       <template v-if="auth.user">
@@ -19,7 +25,7 @@
     </v-app-bar>
 
     <v-main>
-      <v-container class="py-6">
+      <v-container :fluid="fluid" :class="fluid ? 'pa-0' : 'py-6'">
         <slot />
       </v-container>
     </v-main>
@@ -33,6 +39,10 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+
+defineProps({
+  fluid: { type: Boolean, default: false },
+})
 
 const auth = useAuthStore()
 const router = useRouter()

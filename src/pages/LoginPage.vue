@@ -3,6 +3,13 @@
     <v-row justify="center">
       <v-col cols="12" sm="8" md="5">
         <v-card class="pa-6" elevation="4">
+          <div class="d-flex justify-center mb-4">
+            <img
+              src="@/image/logo.png"
+              alt="Bolão Copa 26"
+              style="height:clamp(48px,12vw,80px);width:auto"
+            />
+          </div>
           <div class="text-h5 font-weight-bold text-center mb-6">Entrar</div>
 
           <v-alert v-if="error" type="error" class="mb-4" closable @click:close="error = ''">
