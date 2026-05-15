@@ -1,6 +1,6 @@
 # ⚽ Bolão da Copa do Mundo
 
-Aplicação web de bolão para a Copa do Mundo com apostas de placar, ranking em tempo real e geração de jogos via IA (Google Gemini).
+Aplicação web de bolão para a Copa do Mundo 2026 com apostas de placar, ranking em tempo real e importação automática de jogos oficiais via OpenFootball + Google Gemini.
 
 ---
 
@@ -23,10 +23,12 @@ Aplicação web de bolão para a Copa do Mundo com apostas de placar, ranking em
 
 ## Visão Geral
 
-O Bolão da Copa permite que usuários cadastrados façam palpites de placar para cada jogo da Copa do Mundo. Ao final de cada partida, pontos são calculados automaticamente via função SQL no Supabase. Um ranking global classifica os jogadores por pontos, acertos exatos e acertos de vencedor.
+O Bolão da Copa permite que usuários cadastrados façam palpites de placar para cada jogo da Copa do Mundo 2026. Ao final de cada partida, pontos são calculados automaticamente via função SQL no Supabase. Um ranking global classifica os jogadores por pontos, acertos exatos e acertos de vencedor.
 
 O painel administrativo oferece:
-- Geração automática de jogos via **Google Gemini**
+- Importação automática dos jogos reais da Copa 2026 via **OpenFootball** (calendário oficial da FIFA)
+- Enriquecimento dos dados via **Google Gemini** (tradução dos nomes e emojis de bandeiras)
+- Sincronização inteligente: detecta automaticamente jogos novos, alterados ou sem mudanças
 - Gerenciamento manual de jogos (criar, editar, alterar status)
 - Lançamento de resultados e recálculo automático de pontos
 
@@ -41,6 +43,7 @@ O painel administrativo oferece:
 | Estado | Pinia 3 |
 | Roteamento | Vue Router 4 |
 | Backend / DB | Supabase (PostgreSQL + Auth + RLS) |
+| Dados de jogos | OpenFootball (calendário oficial FIFA, sem API key) |
 | IA | Google Gemini API (`@google/genai`) |
 | Build | Vite 8 |
 
@@ -56,8 +59,9 @@ O painel administrativo oferece:
 - Ranking global com medalhas para o top 3
 
 ### Admin
-- Geração de jogos com IA (Google Gemini) a partir de um prompt customizável
-- Preview e edição dos jogos sugeridos antes de salvar
+- Importação dos jogos reais da Copa 2026 em ~5s (antes levava 20-40s)
+- Sincronização inteligente: jogos novos são inseridos, alterados são atualizados, iguais são ignorados
+- Preview com indicador visual por jogo: **Novo** (verde), **Alterado** (laranja), **Igual** (cinza)
 - CRUD de jogos (times, flags, data, fase, grupo, status)
 - Lançamento de resultados e recálculo automático de pontos via RPC SQL
 
@@ -72,26 +76,27 @@ copa-do-mundo/
 ├── package.json
 ├── .env.example
 ├── supabase/
-│   └── schema.sql          # Schema completo: tabelas, funções, triggers, RLS
+│   └── schema.sql              # Schema completo: tabelas, funções, triggers, RLS
 ├── public/
 │   ├── favicon.svg
 │   └── icons.svg
 └── src/
-    ├── main.js             # Bootstrap: Vue + Pinia + Vuetify + Router
-    ├── App.vue             # Root component (<router-view />)
+    ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
+    ├── App.vue                 # Root component (<router-view />)
     ├── router/
-    │   └── index.js        # 8 rotas com guards de autenticação e papel
+    │   └── index.js            # 8 rotas com guards de autenticação e papel
     ├── stores/
-    │   ├── auth.js         # Sessão, perfil, login, registro, logout
-    │   ├── games.js        # CRUD de jogos, lançamento de resultados
-    │   ├── bets.js         # Palpites do usuário autenticado
-    │   └── ranking.js      # Leaderboard global
+    │   ├── auth.js             # Sessão, perfil, login, registro, logout
+    │   ├── games.js            # CRUD de jogos, lançamento de resultados
+    │   ├── bets.js             # Palpites do usuário autenticado
+    │   └── ranking.js          # Leaderboard global
     ├── lib/
-    │   ├── supabase.js     # Cliente Supabase
-    │   └── gemini.js       # Wrapper para geração de jogos com Gemini
+    │   ├── supabase.js         # Cliente Supabase
+    │   ├── footballApi.js      # Busca jogos oficiais da Copa 2026 via OpenFootball
+    │   └── gemini.js           # Tradução de nomes e emojis de bandeiras via Gemini
     ├── components/
-    │   ├── AppLayout.vue   # Navbar + footer com links dinâmicos por papel
-    │   └── GameCard.vue    # Card reutilizável de jogo com palpite e pontos
+    │   ├── AppLayout.vue       # Navbar + footer com links dinâmicos por papel
+    │   └── GameCard.vue        # Card reutilizável de jogo com palpite e pontos
     └── pages/
         ├── HomePage.vue
         ├── LoginPage.vue
@@ -133,6 +138,8 @@ Extensão de `auth.users`. Criada automaticamente via trigger no signup.
 | status | text | `upcoming` \| `open` \| `closed` \| `live` \| `finished` |
 | score_a / score_b | int | Placar final (nullable) |
 | bet_opens_at / bet_closes_at | timestamptz | Janela de apostas |
+
+> Constraint `games_unique_match` garante unicidade por `(team_a, team_b, match_date)`, evitando duplicatas na importação.
 
 > Trigger `set_bet_window()` calcula automaticamente a janela de apostas: abre 24h antes e fecha no horário da partida.
 
@@ -210,11 +217,16 @@ cp .env.example .env
 # Acesse seu projeto Supabase → SQL Editor
 # Cole e execute o conteúdo de supabase/schema.sql
 
-# 5. Crie o primeiro usuário admin
+# 5. Adicione a constraint de unicidade (se o banco já existia)
+# Execute no SQL Editor do Supabase:
+# ALTER TABLE public.games DROP CONSTRAINT IF EXISTS games_unique_match;
+# ALTER TABLE public.games ADD CONSTRAINT games_unique_match UNIQUE (team_a, team_b, match_date);
+
+# 6. Crie o primeiro usuário admin
 # Registre normalmente na aplicação, depois atualize via SQL:
 # UPDATE profiles SET role = 'admin' WHERE id = '<seu-uuid>';
 
-# 6. Inicie o servidor de desenvolvimento
+# 7. Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
@@ -279,11 +291,22 @@ RLS (Row Level Security) ativado em todas as tabelas. As políticas estão defin
 
 Acesse `/admin` com uma conta de role `admin`.
 
-### Aba 1 — Gerar com Gemini
-1. Edite o prompt (pré-preenchido para fase de grupos)
-2. Clique em **Gerar com Gemini**
-3. Revise e edite os jogos na tabela de preview
-4. Clique em **Confirmar e Salvar Todos**
+### Aba 1 — Importar Jogos
+
+Importa os jogos reais da Copa 2026 em duas etapas automáticas:
+
+1. **Busca via OpenFootball** (~200ms): calendário oficial da FIFA sem necessidade de API key
+2. **Enriquecimento via Gemini** (~3-5s): traduz os nomes dos times para português e adiciona emojis de bandeiras
+
+Após a busca, uma tabela de preview exibe cada jogo com seu status de sincronização:
+
+| Chip | Cor | Significado |
+|---|---|---|
+| Novo | Verde | Será inserido no banco |
+| Alterado | Laranja | Dados diferentes do banco — será atualizado |
+| Igual | Cinza | Sem mudanças — será ignorado |
+
+Clique em **Confirmar e sincronizar** para aplicar apenas as mudanças necessárias. O resultado exibe quantos jogos foram inseridos, atualizados, ignorados ou tiveram erro.
 
 ### Aba 2 — Gerenciar Jogos
 - Visualize todos os jogos com status editável inline

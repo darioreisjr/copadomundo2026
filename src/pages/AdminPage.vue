@@ -3,7 +3,7 @@
     <div class="text-h5 font-weight-bold mb-6">⚙️ Painel Administrativo</div>
 
     <v-tabs v-model="tab" color="green-darken-3" class="mb-6">
-      <v-tab value="gemini">Gerar jogos com Gemini</v-tab>
+      <v-tab value="gemini">Importar jogos</v-tab>
       <v-tab value="games">Gerenciar jogos</v-tab>
       <v-tab value="results">Inserir resultados</v-tab>
     </v-tabs>
@@ -12,28 +12,36 @@
     <v-window v-model="tab">
       <v-window-item value="gemini">
         <v-card class="pa-6" elevation="2">
-          <div class="text-subtitle-1 font-weight-medium mb-4">
-            Gere a tabela de jogos da Copa com ajuda do Gemini e revise antes de salvar.
+          <div class="text-subtitle-1 font-weight-medium mb-2">
+            Importar jogos reais da Copa do Mundo 2026
           </div>
-
-          <v-text-field
-            v-model="geminiPrompt"
-            label="Prompt para o Gemini"
-            variant="outlined"
-            rows="3"
-            auto-grow
-            class="mb-4"
-          />
+          <v-alert type="info" variant="tonal" class="mb-4" density="compact">
+            Os jogos são buscados diretamente do calendário oficial da FIFA via OpenFootball.
+            O Gemini adiciona traduções e emojis de bandeiras. Revise os dados antes de salvar.
+          </v-alert>
 
           <v-btn
             color="green-darken-3"
-            prepend-icon="mdi-robot"
-            :loading="geminiLoading"
+            prepend-icon="mdi-soccer"
+            :loading="geminiLoading && !geminiProgress"
+            :disabled="geminiLoading"
             @click="callGemini"
-            class="mb-6"
+            class="mb-4"
           >
-            Gerar com Gemini
+            Importar jogos da Copa 2026
           </v-btn>
+
+          <v-card
+            v-if="geminiLoading && geminiProgress"
+            variant="tonal"
+            color="green-darken-3"
+            class="pa-4 mb-4"
+          >
+            <div class="d-flex align-center ga-3">
+              <v-progress-circular indeterminate color="green-darken-3" size="24" width="3" />
+              <div class="text-body-2 font-weight-medium">{{ geminiProgress.message }}</div>
+            </div>
+          </v-card>
 
           <v-alert v-if="geminiError" type="error" class="mb-4" closable @click:close="geminiError = ''">
             {{ geminiError }}
@@ -42,7 +50,7 @@
           <!-- Preview suggested games -->
           <template v-if="suggestedGames.length">
             <div class="text-subtitle-1 font-weight-medium mb-3">
-              Jogos sugeridos ({{ suggestedGames.length }}) — revise antes de confirmar:
+              Jogos encontrados ({{ suggestedGames.length }}) — revise antes de confirmar:
             </div>
 
             <v-table class="mb-4">
@@ -53,6 +61,7 @@
                   <th>Data</th>
                   <th>Fase</th>
                   <th>Grupo</th>
+                  <th>Status</th>
                   <th></th>
                 </tr>
               </thead>
@@ -60,9 +69,14 @@
                 <tr v-for="(g, idx) in suggestedGames" :key="idx">
                   <td>{{ g.flag_a }} {{ g.team_a }}</td>
                   <td>{{ g.flag_b }} {{ g.team_b }}</td>
-                  <td>{{ g.match_date }}</td>
-                  <td>{{ g.phase }}</td>
+                  <td>{{ formatDate(g.match_date) }}</td>
+                  <td>{{ phaseMap[g.phase] ?? g.phase }}</td>
                   <td>{{ g.group_name ?? '-' }}</td>
+                  <td>
+                    <v-chip :color="gameChipColor(g)" size="x-small" variant="tonal">
+                      {{ gameChipLabel(g) }}
+                    </v-chip>
+                  </td>
                   <td>
                     <v-btn icon="mdi-delete" size="small" variant="text" color="red"
                       @click="suggestedGames.splice(idx, 1)" />
@@ -77,12 +91,25 @@
               :loading="savingGames"
               @click="confirmGames"
             >
-              Confirmar e salvar todos os jogos
+              Confirmar e sincronizar
             </v-btn>
-            <v-alert v-if="gamesSaved" type="success" class="mt-4">
-              {{ gamesSavedCount }} jogos salvos com sucesso!
-            </v-alert>
           </template>
+
+          <!-- Resultado da sincronização -->
+          <v-alert
+            v-if="syncResult"
+            :type="syncResult.errors > 0 ? 'warning' : 'success'"
+            class="mt-4"
+            variant="tonal"
+          >
+            <div v-if="syncResult.inserted > 0">{{ syncResult.inserted }} jogo(s) novo(s) inserido(s)</div>
+            <div v-if="syncResult.updated > 0">{{ syncResult.updated }} jogo(s) atualizado(s)</div>
+            <div v-if="syncResult.unchanged > 0">{{ syncResult.unchanged }} jogo(s) sem alteração</div>
+            <div v-if="syncResult.errors > 0">{{ syncResult.errors }} erro(s) ao salvar</div>
+            <div v-if="syncResult.inserted === 0 && syncResult.updated === 0 && syncResult.errors === 0">
+              Nenhuma alteração — todos os jogos já estão atualizados.
+            </div>
+          </v-alert>
         </v-card>
       </v-window-item>
 
@@ -242,49 +269,108 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import { useGamesStore } from '@/stores/games'
-import { generateMatches } from '@/lib/gemini'
+import { enrichTeams } from '@/lib/gemini'
+import { fetchWorldCupMatches } from '@/lib/footballApi'
 
 const gamesStore = useGamesStore()
 
 const tab = ref('gemini')
 
-// --- Gemini tab ---
-const defaultPrompt = `Gere uma lista JSON com os jogos da fase de grupos da Copa do Mundo 2026.
-Cada jogo deve ter os campos: team_a, team_b, flag_a (emoji), flag_b (emoji), match_date (ISO 8601), phase ("group"), group_name (letra do grupo).
-Retorne apenas o array JSON sem explicações.`
-
-const geminiPrompt  = ref(defaultPrompt)
-const geminiLoading = ref(false)
-const geminiError   = ref('')
-const suggestedGames = ref([])
-const savingGames   = ref(false)
-const gamesSaved    = ref(false)
-const gamesSavedCount = ref(0)
+// --- Importar jogos tab ---
+const geminiLoading   = ref(false)
+const geminiError     = ref('')
+const geminiProgress  = ref(null)
+const suggestedGames  = ref([])
+const savingGames     = ref(false)
 
 async function callGemini() {
   geminiLoading.value = true
   geminiError.value = ''
+  geminiProgress.value = { step: 'api', message: 'Buscando jogos oficiais da FIFA...' }
   suggestedGames.value = []
   try {
-    suggestedGames.value = await generateMatches(geminiPrompt.value)
+    // Etapa 1: busca da API (~200ms)
+    const rawMatches = await fetchWorldCupMatches()
+
+    // Etapa 2: Gemini traduz e adiciona emojis (só 48 nomes, ~3-5s)
+    geminiProgress.value = { step: 'gemini', message: 'Adicionando traduções e bandeiras via Gemini...' }
+    const uniqueTeams = [...new Set(rawMatches.flatMap(m => [m.team1, m.team2]))]
+    const enrichment = await enrichTeams(uniqueTeams)
+
+    // Etapa 3: mescla
+    suggestedGames.value = rawMatches.map(m => ({
+      team_a: enrichment[m.team1]?.pt ?? m.team1,
+      team_b: enrichment[m.team2]?.pt ?? m.team2,
+      flag_a: enrichment[m.team1]?.emoji ?? '🏳️',
+      flag_b: enrichment[m.team2]?.emoji ?? '🏳️',
+      match_date: m.match_date,
+      phase: m.phase,
+      group_name: m.group_name,
+    }))
   } catch (e) {
     geminiError.value = e.message
   } finally {
     geminiLoading.value = false
+    geminiProgress.value = null
   }
+}
+
+const COMPARABLE_FIELDS = ['flag_a', 'flag_b', 'phase', 'group_name']
+const syncResult = ref(null)
+
+function classifyGame(incoming) {
+  const existing = gamesStore.games.find(
+    g => g.team_a === incoming.team_a && g.team_b === incoming.team_b
+  )
+  if (!existing) return { status: 'new', existing: null, changed: [] }
+
+  const changed = COMPARABLE_FIELDS.filter(
+    f => String(existing[f] ?? '') !== String(incoming[f] ?? '')
+  )
+  const inDate = new Date(incoming.match_date).toISOString().slice(0, 16)
+  const exDate = new Date(existing.match_date).toISOString().slice(0, 16)
+  if (inDate !== exDate) changed.push('match_date')
+
+  return changed.length > 0
+    ? { status: 'changed', existing, changed }
+    : { status: 'unchanged', existing, changed: [] }
+}
+
+function gameChipColor(g) {
+  const { status } = classifyGame(g)
+  return status === 'new' ? 'green' : status === 'changed' ? 'orange' : 'grey'
+}
+
+function gameChipLabel(g) {
+  const { status } = classifyGame(g)
+  return status === 'new' ? 'Novo' : status === 'changed' ? 'Alterado' : 'Igual'
 }
 
 async function confirmGames() {
   savingGames.value = true
-  let count = 0
+  syncResult.value = null
+  const results = { inserted: 0, updated: 0, unchanged: 0, errors: 0 }
+
   for (const g of suggestedGames.value) {
+    const { status, existing } = classifyGame(g)
+    if (status === 'unchanged') {
+      results.unchanged++
+      continue
+    }
     try {
-      await gamesStore.createGame(g)
-      count++
-    } catch (_) { /* skip individual failures */ }
+      if (status === 'new') {
+        await gamesStore.createGame(g)
+        results.inserted++
+      } else {
+        await gamesStore.updateGame(existing.id, g)
+        results.updated++
+      }
+    } catch (_) {
+      results.errors++
+    }
   }
-  gamesSavedCount.value = count
-  gamesSaved.value = true
+
+  syncResult.value = results
   suggestedGames.value = []
   savingGames.value = false
   await gamesStore.fetchGames()

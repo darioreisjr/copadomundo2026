@@ -59,6 +59,12 @@ create table if not exists public.games (
   created_at      timestamptz not null default now()
 );
 
+-- Evita duplicatas na importação: mesmo confronto não pode ter duas entradas na mesma data
+alter table public.games
+  drop constraint if exists games_unique_match;
+alter table public.games
+  add constraint games_unique_match unique (team_a, team_b, match_date);
+
 alter table public.games enable row level security;
 
 create policy "games: anyone reads" on public.games
