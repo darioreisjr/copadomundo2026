@@ -53,6 +53,12 @@ O painel administrativo oferece:
 
 ### Usuário
 - Cadastro e login com e-mail e senha (Supabase Auth)
+- Tela de login redesenhada: layout dividido, imagem lateral com blur, sem header/footer
+- Lembrar e-mail: checkbox "Lembrar-me" salva o e-mail no localStorage para próximo acesso
+- Recuperação de senha por e-mail (link enviado pelo Supabase)
+- Redefinição de senha via página dedicada com validação de confirmação
+- Página "Como usar" com guia passo a passo da tela de login, acessível pelo menu
+- Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
 - Dashboard pessoal com pontuação, posição no ranking, acertos exatos e total de palpites
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo (criação e edição enquanto a aposta está aberta)
@@ -84,23 +90,27 @@ copa-do-mundo/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
     ├── App.vue                 # Root component (<router-view />)
     ├── router/
-    │   └── index.js            # 8 rotas com guards de autenticação e papel
+    │   └── index.js            # 10 rotas com guards de autenticação e papel
     ├── stores/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
     │   ├── games.js            # CRUD de jogos, lançamento de resultados
     │   ├── bets.js             # Palpites do usuário autenticado
-    │   └── ranking.js          # Leaderboard global
+    │   ├── ranking.js          # Leaderboard global
+    │   └── toast.js            # Notificações globais (snackbar)
     ├── lib/
     │   ├── supabase.js         # Cliente Supabase
     │   ├── footballApi.js      # Busca jogos oficiais da Copa 2026 via OpenFootball
     │   └── gemini.js           # Tradução de nomes e emojis de bandeiras via Gemini
     ├── components/
-    │   ├── AppLayout.vue       # Navbar + footer com links dinâmicos por papel
+    │   ├── AppLayout.vue       # Navbar + footer com links dinâmicos por papel e toast global
     │   └── GameCard.vue        # Card reutilizável de jogo com palpite e pontos
     └── pages/
         ├── HomePage.vue
-        ├── LoginPage.vue
+        ├── LoginPage.vue        # Layout split-screen redesenhado
         ├── RegisterPage.vue
+        ├── ForgotPasswordPage.vue  # Recuperação de senha por e-mail
+        ├── ResetPasswordPage.vue   # Redefinição de senha com token
+        ├── HowToPage.vue           # Guia de uso da tela de login
         ├── DashboardPage.vue
         ├── GamesPage.vue
         ├── BetPage.vue
@@ -263,6 +273,9 @@ npm run preview  # Preview do build local
 | `/` | HomePage | Público |
 | `/login` | LoginPage | Público (redireciona se logado) |
 | `/register` | RegisterPage | Público (redireciona se logado) |
+| `/como-usar` | HowToPage | Público |
+| `/forgot-password` | ForgotPasswordPage | Público |
+| `/reset-password` | ResetPasswordPage | Público |
 | `/dashboard` | DashboardPage | Autenticado |
 | `/games` | GamesPage | Autenticado |
 | `/games/:id/bet` | BetPage | Autenticado |

@@ -1,85 +1,155 @@
 <template>
-  <AppLayout>
-    <v-row justify="center">
-      <v-col cols="12" sm="8" md="5">
-        <v-card class="pa-6" elevation="4">
-          <div class="d-flex justify-center mb-4">
-            <img
-              src="@/image/logo.png"
-              alt="Bolão Copa 26"
-              style="height:clamp(48px,12vw,80px);width:auto"
-            />
-          </div>
-          <div class="text-h5 font-weight-bold text-center mb-6">Entrar</div>
+  <v-app>
+    <v-main style="height:100%">
+      <v-row no-gutters style="height:100vh">
 
-          <v-alert v-if="error" type="error" class="mb-4" closable @click:close="error = ''">
-            {{ error }}
-          </v-alert>
+        <!-- Lado esquerdo: imagem — oculto em mobile -->
+        <v-col cols="12" md="6" class="d-none d-md-flex" style="position:relative;overflow:hidden">
+          <img
+            src="@/image/interactiveSportsPanel.png"
+            alt=""
+            style="width:100%;height:100%;object-fit:cover;display:block;filter:blur(3px);transform:scale(1.05)"
+          />
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,0.25)" />
+        </v-col>
 
-          <v-form @submit.prevent="handleLogin" ref="formRef">
-            <v-text-field
-              v-model="email"
-              label="E-mail"
-              type="email"
-              prepend-inner-icon="mdi-email"
-              :rules="[v => !!v || 'E-mail obrigatório']"
-              class="mb-2"
-            />
-            <v-text-field
-              v-model="password"
-              label="Senha"
-              type="password"
-              prepend-inner-icon="mdi-lock"
-              :rules="[v => !!v || 'Senha obrigatória']"
-              class="mb-4"
-            />
+        <!-- Toast de erro no topo direito -->
+        <v-snackbar
+          v-model="error"
+          location="top right"
+          color="error"
+          :timeout="4000"
+          rounded="lg"
+        >
+          <v-icon icon="mdi-alert-circle" class="mr-2" />
+          {{ errorMsg }}
+          <template #actions>
+            <v-btn icon="mdi-close" variant="text" size="small" @click="error = false" />
+          </template>
+        </v-snackbar>
+
+        <!-- Lado direito: formulário sem card, ocupa toda a área -->
+        <v-col cols="12" md="6" class="d-flex flex-column" style="background:#f5f5f5">
+          <div class="pa-4 d-flex justify-end">
             <v-btn
-              type="submit"
-              color="green-darken-3"
-              block
-              size="large"
-              :loading="loading"
+              :to="{ name: 'Home' }"
+              variant="outlined"
+              prepend-icon="mdi-arrow-left"
+              size="small"
             >
-              Entrar
+              Voltar ao site
             </v-btn>
-          </v-form>
-
-          <div class="text-center mt-4 text-caption">
-            Não tem conta?
-            <router-link :to="{ name: 'Register' }" class="text-green-darken-3 font-weight-bold">
-              Criar conta
-            </router-link>
           </div>
-        </v-card>
-      </v-col>
-    </v-row>
-  </AppLayout>
+          <div class="d-flex align-center justify-center flex-grow-1">
+          <div style="width:100%;max-width:600px;padding:0 56px 48px">
+            <div class="d-flex justify-center mb-4">
+              <img
+                src="@/image/emblema.png"
+                alt="Bolão Copa 26"
+                style="height:clamp(80px,15vw,140px);width:auto"
+              />
+            </div>
+            <div class="text-h5 font-weight-bold text-center mb-6">Entrar</div>
+
+            <v-form @submit.prevent="handleLogin" ref="formRef">
+              <v-text-field
+                v-model="email"
+                label="E-mail"
+                type="email"
+                autocomplete="email"
+                prepend-inner-icon="mdi-email"
+                :rules="[v => !!v || 'E-mail obrigatório']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="password"
+                label="Senha"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
+                prepend-inner-icon="mdi-lock"
+                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                @click:append-inner="showPassword = !showPassword"
+                :rules="[v => !!v || 'Senha obrigatória']"
+                class="mb-4"
+              />
+              <div class="text-right mb-1">
+                <router-link :to="{ name: 'ForgotPassword' }" class="text-caption text-green-darken-3">
+                  Esqueceu a senha?
+                </router-link>
+              </div>
+              <v-checkbox
+                v-model="rememberMe"
+                label="Lembrar-me"
+                color="green-darken-3"
+                density="compact"
+                class="mb-2"
+                hide-details
+              />
+              <v-btn
+                type="submit"
+                color="green-darken-3"
+                block
+                size="large"
+                :loading="loading"
+              >
+                Entrar
+              </v-btn>
+            </v-form>
+
+            <div class="text-center mt-4 text-caption">
+              Não tem conta?
+              <router-link :to="{ name: 'Register' }" class="text-green-darken-3 font-weight-bold">
+                Criar conta
+              </router-link>
+            </div>
+          </div>
+          </div>
+        </v-col>
+
+      </v-row>
+    </v-main>
+  </v-app>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import AppLayout from '@/components/AppLayout.vue'
+import { useToastStore } from '@/stores/toast'
 
 const auth = useAuthStore()
+const toast = useToastStore()
 const router = useRouter()
+const REMEMBER_KEY = 'bolao:remembered-email'
+
 const formRef = ref(null)
-const email = ref('')
+const savedEmail = localStorage.getItem(REMEMBER_KEY)
+const email = ref(savedEmail ?? '')
 const password = ref('')
 const loading = ref(false)
-const error = ref('')
+const error = ref(false)
+const errorMsg = ref('')
+const showPassword = ref(false)
+const rememberMe = ref(!!savedEmail)
 
 async function handleLogin() {
   const { valid } = await formRef.value.validate()
   if (!valid) return
   loading.value = true
-  error.value = ''
+  error.value = false
   try {
-    await auth.login({ email: email.value, password: password.value })
+    await auth.login({ email: email.value, password: password.value, rememberMe: rememberMe.value })
+    if (rememberMe.value) {
+      localStorage.setItem(REMEMBER_KEY, email.value)
+    } else {
+      localStorage.removeItem(REMEMBER_KEY)
+    }
+    const name = auth.profile?.name ?? auth.user?.email?.split('@')[0] ?? 'jogador'
+    toast.notify(`Bem-vindo de volta, ${name}!`)
     router.push({ name: 'Dashboard' })
   } catch (e) {
-    error.value = 'E-mail ou senha inválidos.'
+    errorMsg.value = 'E-mail ou senha inválidos.'
+    error.value = true
   } finally {
     loading.value = false
   }

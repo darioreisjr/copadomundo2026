@@ -11,6 +11,8 @@
         </router-link>
       </v-app-bar-title>
 
+      <v-btn :to="{ name: 'HowTo' }" variant="text">Como usar</v-btn>
+
       <template v-if="auth.user">
         <v-btn :to="{ name: 'Dashboard' }" variant="text">Dashboard</v-btn>
         <v-btn :to="{ name: 'Games' }" variant="text">Jogos</v-btn>
@@ -33,11 +35,26 @@
     <v-footer color="green-darken-4" class="text-center text-caption text-white py-3">
       Bolão da Copa &copy; {{ new Date().getFullYear() }}
     </v-footer>
+
+    <v-snackbar
+      v-model="toast.show"
+      location="top right"
+      :color="toast.color"
+      :timeout="4000"
+      rounded="lg"
+    >
+      <v-icon :icon="toast.color === 'success' ? 'mdi-check-circle' : 'mdi-alert-circle'" class="mr-2" />
+      {{ toast.message }}
+      <template #actions>
+        <v-btn icon="mdi-close" variant="text" size="small" @click="toast.show = false" />
+      </template>
+    </v-snackbar>
   </v-app>
 </template>
 
 <script setup>
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import { useRouter } from 'vue-router'
 
 defineProps({
@@ -45,6 +62,7 @@ defineProps({
 })
 
 const auth = useAuthStore()
+const toast = useToastStore()
 const router = useRouter()
 
 async function handleLogout() {
