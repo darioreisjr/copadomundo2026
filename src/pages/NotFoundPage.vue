@@ -24,10 +24,10 @@
           size="large"
           rounded="pill"
           class="mt-6 home-btn"
-          to="/"
+          :to="homeRoute"
         >
           <v-icon start>mdi-home</v-icon>
-          Voltar ao Início
+          {{ auth.user ? 'Ir para o Dashboard' : 'Voltar ao Início' }}
         </v-btn>
       </div>
     </div>
@@ -35,6 +35,12 @@
 </template>
 
 <script setup>
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+
+const homeRoute = auth.user ? '/dashboard' : '/'
+
 function starStyle(n) {
   const size = Math.random() * 3 + 1
   return {
