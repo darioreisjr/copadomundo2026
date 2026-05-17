@@ -63,6 +63,7 @@ O painel administrativo oferece:
 - Requisitos de senha fortes: mínimo 8 caracteres, letra maiúscula, minúscula e número, com indicador visual em tempo real
 - Botão "Criar conta" habilitado somente quando todos os requisitos de senha, e-mail válido e aceite dos termos estão ok
 - Bloqueio de e-mail duplicado: botão desabilitado após erro de e-mail já cadastrado até o usuário trocar o endereço
+- Tratamento de e-mail no limbo: quando o e-mail já foi cadastrado mas nunca confirmado, exibe banner de aviso com botão para reenviar o link de confirmação sem precisar criar uma nova conta
 - Aceite obrigatório dos Termos de Uso e Privacidade ao criar conta
 - Página de Termos de Uso e Privacidade com 8 seções completas (LGPD, regras do bolão, privacidade, contato)
 - Página de confirmação de conta com instruções passo a passo para ativar a conta via e-mail, exibida automaticamente após o cadastro bem-sucedido

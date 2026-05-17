@@ -63,6 +63,34 @@
                   :rules="[v => !!v || 'E-mail obrigatório', v => /.+@.+\..+/.test(v) || 'E-mail inválido']"
                   class="mb-2"
                 />
+                <v-alert
+                  v-if="emailNotConfirmed"
+                  type="warning"
+                  variant="tonal"
+                  rounded="lg"
+                  class="mb-3"
+                  icon="mdi-email-alert"
+                >
+                  <div class="font-weight-medium mb-1">E-mail ainda não confirmado</div>
+                  <div class="text-body-2 mb-2">
+                    O e-mail <strong>{{ blockedEmail }}</strong> foi cadastrado mas ainda não confirmado.
+                    Clique no botão abaixo para receber um novo link de confirmação.
+                  </div>
+                  <v-btn
+                    v-if="!resendSuccess"
+                    size="small"
+                    variant="outlined"
+                    color="warning"
+                    :loading="resendLoading"
+                    @click="handleResend"
+                  >
+                    Enviar link de confirmação
+                  </v-btn>
+                  <span v-else class="text-caption text-green-darken-3">
+                    <v-icon icon="mdi-check" size="14" /> Link enviado! Verifique sua caixa de entrada (e o spam).
+                  </span>
+                </v-alert>
+
                 <v-text-field
                   v-model="password"
                   label="Senha"
@@ -193,9 +221,12 @@ const showConfirm = ref(false)
 const agreeTerms = ref(false)
 const emailBlocked = ref(false)
 const blockedEmail = ref('')
+const emailNotConfirmed = ref(false)
 const emailError = ref('')
 const emailChecking = ref(false)
 const emailValid = ref(false)
+const resendLoading = ref(false)
+const resendSuccess = ref(false)
 
 watch(email, (val) => {
   emailValid.value = false
@@ -203,6 +234,8 @@ watch(email, (val) => {
   if (emailBlocked.value && val !== blockedEmail.value) {
     emailBlocked.value = false
     blockedEmail.value = ''
+    emailNotConfirmed.value = false
+    resendSuccess.value = false
   }
 })
 
@@ -258,6 +291,20 @@ const passwordRules = [
   { label: 'No mínimo um número',           test: v => /[0-9]/.test(v) },
 ]
 
+async function handleResend() {
+  resendLoading.value = true
+  resendSuccess.value = false
+  try {
+    await auth.resendConfirmation(email.value)
+    resendSuccess.value = true
+  } catch {
+    errorMsg.value = 'Erro ao reenviar o link. Tente novamente.'
+    hasError.value = true
+  } finally {
+    resendLoading.value = false
+  }
+}
+
 async function handleRegister() {
   const { valid } = await formRef.value.validate()
   if (!valid) return
@@ -279,11 +326,18 @@ async function handleRegister() {
     formRef.value.reset()
     router.push({ name: 'AccountCreated' })
   } catch (e) {
-    errorMsg.value = e.message || 'Erro ao criar conta. Tente novamente.'
-    hasError.value = true
-    if (e.code === 'email_already_exists') {
+    if (e.code === 'email_not_confirmed') {
+      emailNotConfirmed.value = true
       emailBlocked.value = true
       blockedEmail.value = email.value
+    } else if (e.code === 'email_already_exists') {
+      emailBlocked.value = true
+      blockedEmail.value = email.value
+      errorMsg.value = e.message
+      hasError.value = true
+    } else {
+      errorMsg.value = e.message || 'Erro ao criar conta. Tente novamente.'
+      hasError.value = true
     }
   } finally {
     loading.value = false

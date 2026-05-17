@@ -37,10 +37,20 @@ export const useAuthStore = defineStore('auth', () => {
     })
     if (error) throw error
     if (!data.user?.identities?.length) {
+      if (!data.user?.email_confirmed_at) {
+        const err = new Error('Este e-mail foi cadastrado mas ainda não foi confirmado.')
+        err.code = 'email_not_confirmed'
+        throw err
+      }
       const err = new Error('Este e-mail já possui uma conta cadastrada.')
       err.code = 'email_already_exists'
       throw err
     }
+  }
+
+  async function resendConfirmation(email) {
+    const { error } = await supabase.auth.resend({ type: 'signup', email })
+    if (error) throw error
   }
 
   async function login({ email, password }) {
@@ -52,5 +62,5 @@ export const useAuthStore = defineStore('auth', () => {
     await supabase.auth.signOut()
   }
 
-  return { user, profile, initialized, init, register, login, logout, fetchProfile }
+  return { user, profile, initialized, init, register, login, logout, fetchProfile, resendConfirmation }
 })
