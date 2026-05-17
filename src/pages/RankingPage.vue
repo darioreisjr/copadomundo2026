@@ -4,54 +4,74 @@
 
     <v-progress-linear v-if="rankingStore.loading" indeterminate color="green-darken-3" class="mb-4" />
 
-    <v-card v-if="rankingStore.entries.length" elevation="2">
-      <v-table>
-        <thead>
-          <tr>
-            <th class="text-left">#</th>
-            <th class="text-left">Nome</th>
-            <th class="text-right">Pontos</th>
-            <th class="text-right">Placares exatos</th>
-            <th class="text-right">Vencedor</th>
-            <th class="text-right">Empates</th>
-            <th class="text-right">Palpites</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(entry, idx) in rankingStore.entries"
-            :key="entry.user_id"
-            :class="entry.user_id === auth.user?.id ? 'bg-green-lighten-5 font-weight-bold' : ''"
-          >
-            <td>
-              <v-chip
-                :color="idx === 0 ? 'amber' : idx === 1 ? 'grey-lighten-1' : idx === 2 ? 'brown-lighten-2' : 'default'"
-                :variant="idx < 3 ? 'elevated' : 'text'"
-                size="small"
-              >
-                {{ idx + 1 }}
-              </v-chip>
-            </td>
-            <td>
-              {{ entry.profiles?.name ?? '—' }}
-              <v-chip v-if="entry.user_id === auth.user?.id" size="x-small" color="green" class="ml-1">Você</v-chip>
-            </td>
-            <td class="text-right font-weight-bold text-green-darken-3">{{ entry.total_points }}</td>
-            <td class="text-right">{{ entry.exact_hits }}</td>
-            <td class="text-right">{{ entry.winner_hits }}</td>
-            <td class="text-right">{{ entry.draw_hits }}</td>
-            <td class="text-right">{{ entry.total_bets }}</td>
-          </tr>
-        </tbody>
-      </v-table>
-    </v-card>
+    <template v-if="rankingStore.entries.length">
+      <v-card elevation="2">
+        <v-table>
+          <thead>
+            <tr>
+              <th class="text-left">#</th>
+              <th class="text-left">Nome</th>
+              <th class="text-right">Pontos</th>
+              <th class="text-right">Placares exatos</th>
+              <th class="text-right">Vencedor</th>
+              <th class="text-right">Empates</th>
+              <th class="text-right">Palpites</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(entry, idx) in rankingStore.entries"
+              :key="entry.user_id"
+              :class="entry.user_id === auth.user?.id ? 'bg-green-lighten-5 font-weight-bold' : ''"
+            >
+              <td>
+                <v-chip
+                  :color="idx === 0 ? 'amber' : idx === 1 ? 'grey-lighten-1' : idx === 2 ? 'brown-lighten-2' : 'default'"
+                  :variant="idx < 3 ? 'elevated' : 'text'"
+                  size="small"
+                >
+                  {{ idx + 1 }}
+                </v-chip>
+              </td>
+              <td>
+                {{ entry.profiles?.name ?? '—' }}
+                <v-chip v-if="entry.user_id === auth.user?.id" size="x-small" color="green" class="ml-1">Você</v-chip>
+              </td>
+              <td class="text-right font-weight-bold text-green-darken-3">{{ entry.total_points }}</td>
+              <td class="text-right">{{ entry.exact_hits }}</td>
+              <td class="text-right">{{ entry.winner_hits }}</td>
+              <td class="text-right">{{ entry.draw_hits }}</td>
+              <td class="text-right">{{ entry.total_bets }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-card>
 
-    <v-alert v-else type="info" variant="tonal">
-      Nenhum palpite pontuado ainda. O ranking aparecerá após os primeiros resultados.
-    </v-alert>
+      <div class="mt-4 text-caption text-medium-emphasis">
+        Critério de desempate: placares exatos → vencedores → palpites feitos
+      </div>
+    </template>
 
-    <div class="mt-4 text-caption text-medium-emphasis">
-      Critério de desempate: placares exatos → vencedores → palpites feitos
+    <div v-else-if="!rankingStore.loading" class="empty-state d-flex flex-column align-center justify-center">
+      <div class="empty-state__icon mb-6">
+        <v-icon icon="mdi-podium-silver" size="80" color="green-darken-2" style="opacity:.35" />
+      </div>
+      <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
+        Ranking ainda não iniciado
+      </p>
+      <p class="text-body-2 text-medium-emphasis text-center" style="max-width:360px">
+        O ranking aparecerá aqui assim que os primeiros resultados forem apurados. Faça seus palpites e aguarde!
+      </p>
+      <v-btn
+        color="green-darken-3"
+        variant="tonal"
+        prepend-icon="mdi-soccer"
+        :to="{ name: 'Games' }"
+        class="mt-6"
+        rounded="lg"
+      >
+        Fazer palpites
+      </v-btn>
     </div>
   </AppLayout>
 </template>
@@ -67,3 +87,4 @@ const auth = useAuthStore()
 
 onMounted(() => rankingStore.fetchRanking())
 </script>
+

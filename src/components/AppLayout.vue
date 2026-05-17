@@ -151,7 +151,7 @@
     </template>
 
     <v-main>
-      <v-container :fluid="fluid" :class="fluid ? 'pa-0' : 'py-6'">
+      <v-container :fluid="fluid" :class="[fluid ? 'pa-0' : 'py-6', 'main-content']">
         <slot />
       </v-container>
 
@@ -276,5 +276,9 @@ async function handleLogout() {
 }
 .footer-link:hover {
   color: #f5c542;
+}
+
+.main-content {
+  min-height: 100vh;
 }
 </style>
