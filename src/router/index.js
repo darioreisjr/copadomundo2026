@@ -15,7 +15,7 @@ const routes = [
   { path: '/games/:id/bet', name: 'Bet', component: () => import('@/pages/BetPage.vue') },
   { path: '/ranking',   name: 'Ranking',  component: () => import('@/pages/RankingPage.vue') },
   { path: '/admin',     name: 'Admin',    component: () => import('@/pages/AdminPage.vue'),    meta: { adminOnly: true } },
-  { path: '/:pathMatch(.*)*', redirect: '/' },
+  { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/pages/NotFoundPage.vue'), meta: { public: true } },
 ]
 
 const router = createRouter({
