@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <v-navigation-drawer
-      v-if="auth.user"
+      v-if="!isPublic && auth.user"
       v-model:rail="isRail"
       permanent
       color="green-darken-4"
@@ -102,51 +102,53 @@
       </template>
     </v-navigation-drawer>
 
-    <v-btn
-      :icon="rightDrawer ? 'mdi-close' : 'mdi-menu'"
-      color="green-darken-4"
-      style="position:fixed;top:12px;right:12px;z-index:1100;"
-      elevation="2"
-      @click="rightDrawer = !rightDrawer"
-    />
+    <template v-if="!isPublic && auth.user">
+      <v-btn
+        :icon="rightDrawer ? 'mdi-close' : 'mdi-menu'"
+        color="green-darken-4"
+        style="position:fixed;top:12px;right:12px;z-index:1100;"
+        elevation="2"
+        @click="rightDrawer = !rightDrawer"
+      />
 
-    <v-navigation-drawer
-      v-model="rightDrawer"
-      location="right"
-      temporary
-      color="green-darken-4"
-      width="220"
-    >
-      <div v-if="auth.user" class="d-flex flex-column align-center py-6 px-4">
-        <v-avatar color="green-darken-1" size="64" class="mb-3">
-          <span class="text-white font-weight-bold text-h6">
-            {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
+      <v-navigation-drawer
+        v-model="rightDrawer"
+        location="right"
+        temporary
+        color="green-darken-4"
+        width="220"
+      >
+        <div class="d-flex flex-column align-center py-6 px-4">
+          <v-avatar color="green-darken-1" size="64" class="mb-3">
+            <span class="text-white font-weight-bold text-h6">
+              {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
+            </span>
+          </v-avatar>
+          <span class="text-white font-weight-medium text-body-1 text-center">
+            {{ auth.profile?.name || 'Usuário' }}
           </span>
-        </v-avatar>
-        <span class="text-white font-weight-medium text-body-1 text-center">
-          {{ auth.profile?.name || 'Usuário' }}
-        </span>
-        <span v-if="auth.profile?.role === 'admin'" class="text-caption mt-1" style="color:#f5c542">Admin</span>
-      </div>
+          <span v-if="auth.profile?.role === 'admin'" class="text-caption mt-1" style="color:#f5c542">Admin</span>
+        </div>
 
-      <v-divider />
-      <v-list density="compact" nav class="mt-1">
-        <v-list-item
-          prepend-icon="mdi-help-circle-outline"
-          title="Como Usar"
-          :to="{ name: 'HowTo' }"
-          rounded="lg"
-          @click="rightDrawer = false"
-        />
-        <v-list-item
-          prepend-icon="mdi-file-document-outline"
-          title="Termos"
-          :to="{ name: 'Terms' }"
-          rounded="lg"
-          @click="rightDrawer = false"
-        />
-      </v-list>
-    </v-navigation-drawer>
+        <v-divider />
+        <v-list density="compact" nav class="mt-1">
+          <v-list-item
+            prepend-icon="mdi-help-circle-outline"
+            title="Como Usar"
+            :to="{ name: 'HowTo' }"
+            rounded="lg"
+            @click="rightDrawer = false"
+          />
+          <v-list-item
+            prepend-icon="mdi-file-document-outline"
+            title="Termos"
+            :to="{ name: 'Terms' }"
+            rounded="lg"
+            @click="rightDrawer = false"
+          />
+        </v-list>
+      </v-navigation-drawer>
+    </template>
 
     <v-main>
       <v-container :fluid="fluid" :class="fluid ? 'pa-0' : 'py-6'">
@@ -238,8 +240,9 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useRouter } from 'vue-router'
 
-defineProps({
+const { fluid, isPublic } = defineProps({
   fluid: { type: Boolean, default: false },
+  isPublic: { type: Boolean, default: false },
 })
 
 const auth = useAuthStore()

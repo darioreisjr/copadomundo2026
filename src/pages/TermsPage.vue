@@ -1,5 +1,5 @@
 <template>
-  <AppLayout>
+  <AppLayout is-public>
     <v-container style="max-width:860px" class="py-8">
 
       <!-- Cabeçalho -->

@@ -1,5 +1,5 @@
 <template>
-  <AppLayout fluid>
+  <AppLayout fluid is-public>
 
     <!-- ===== HERO ===== -->
     <section class="hero-section py-10 py-md-16">
