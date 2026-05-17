@@ -6,6 +6,7 @@ const routes = [
   { path: '/login',     name: 'Login',    component: () => import('@/pages/LoginPage.vue'),    meta: { public: true } },
   { path: '/register',        name: 'Register',       component: () => import('@/pages/RegisterPage.vue'),       meta: { public: true } },
   { path: '/como-usar',       name: 'HowTo',          component: () => import('@/pages/HowToPage.vue'),          meta: { public: true } },
+  { path: '/termos',          name: 'Terms',          component: () => import('@/pages/TermsPage.vue'),          meta: { public: true } },
   { path: '/forgot-password', name: 'ForgotPassword', component: () => import('@/pages/ForgotPasswordPage.vue'), meta: { public: true } },
   { path: '/reset-password',  name: 'ResetPassword',  component: () => import('@/pages/ResetPasswordPage.vue'),  meta: { public: true } },
   { path: '/dashboard', name: 'Dashboard',component: () => import('@/pages/DashboardPage.vue') },

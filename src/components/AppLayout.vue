@@ -12,6 +12,7 @@
       </v-app-bar-title>
 
       <v-btn :to="{ name: 'HowTo' }" variant="text">Como usar</v-btn>
+      <v-btn :to="{ name: 'Terms' }" variant="text">Termos</v-btn>
 
       <template v-if="auth.user">
         <v-btn :to="{ name: 'Dashboard' }" variant="text">Dashboard</v-btn>
