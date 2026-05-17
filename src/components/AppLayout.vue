@@ -1,39 +1,159 @@
 <template>
   <v-app>
-    <v-app-bar color="green-darken-3" elevation="2">
-      <v-app-bar-title>
-        <router-link :to="{ name: 'Home' }" class="d-flex align-center" style="text-decoration:none">
-          <img
-            src="@/image/logo.png"
-            alt="Bolão Copa 26"
-            style="height:38px;width:auto;display:block"
+    <v-navigation-drawer
+      v-if="auth.user"
+      v-model:rail="isRail"
+      permanent
+      color="green-darken-4"
+      width="220"
+    >
+      <template #prepend>
+        <div style="position:relative;" class="d-flex flex-column align-center py-4 px-2">
+          <v-btn
+            :icon="isRail ? 'mdi-chevron-right' : 'mdi-chevron-left'"
+            variant="text"
+            size="x-small"
+            color="white"
+            style="position:absolute;top:4px;right:4px;"
+            @click="toggleRail"
           />
-        </router-link>
-      </v-app-bar-title>
-
-      <v-btn :to="{ name: 'HowTo' }" variant="text">Como usar</v-btn>
-      <v-btn :to="{ name: 'Terms' }" variant="text">Termos</v-btn>
-
-      <template v-if="auth.user">
-        <v-btn :to="{ name: 'Dashboard' }" variant="text">Dashboard</v-btn>
-        <v-btn :to="{ name: 'Games' }" variant="text">Jogos</v-btn>
-        <v-btn :to="{ name: 'Ranking' }" variant="text">Ranking</v-btn>
-        <v-btn v-if="auth.profile?.role === 'admin'" :to="{ name: 'Admin' }" variant="text">Admin</v-btn>
-        <v-btn @click="handleLogout" variant="text" prepend-icon="mdi-logout">Sair</v-btn>
+          <router-link :to="{ name: 'Home' }" style="text-decoration:none" class="mt-4">
+            <img
+              src="@/image/logo.png"
+              alt="Bolão Copa 26"
+              :style="isRail ? 'height:28px;width:auto' : 'height:48px;width:auto'"
+            />
+          </router-link>
+        </div>
       </template>
-      <template v-else>
-        <v-btn :to="{ name: 'Login' }" variant="text">Entrar</v-btn>
-        <v-btn :to="{ name: 'Register' }" variant="outlined" color="white">Criar conta</v-btn>
+
+      <v-divider />
+
+      <v-list density="compact" nav class="mt-1">
+        <v-tooltip :text="isRail ? 'Dashboard' : ''" location="end">
+          <template #activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              prepend-icon="mdi-view-dashboard"
+              title="Dashboard"
+              :to="{ name: 'Dashboard' }"
+              rounded="lg"
+            />
+          </template>
+        </v-tooltip>
+        <v-tooltip :text="isRail ? 'Jogos' : ''" location="end">
+          <template #activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              prepend-icon="mdi-soccer"
+              title="Jogos"
+              :to="{ name: 'Games' }"
+              rounded="lg"
+            />
+          </template>
+        </v-tooltip>
+        <v-tooltip :text="isRail ? 'Ranking' : ''" location="end">
+          <template #activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              prepend-icon="mdi-podium"
+              title="Ranking"
+              :to="{ name: 'Ranking' }"
+              rounded="lg"
+            />
+          </template>
+        </v-tooltip>
+      </v-list>
+
+      <template v-if="auth.profile?.role === 'admin'">
+        <v-divider />
+        <p v-if="!isRail" class="text-caption px-4 pt-3 pb-1" style="opacity:.6;letter-spacing:.08em">ADMIN</p>
+        <v-list density="compact" nav>
+          <v-tooltip :text="isRail ? 'Painel Admin' : ''" location="end">
+            <template #activator="{ props }">
+              <v-list-item
+                v-bind="props"
+                prepend-icon="mdi-shield-crown"
+                title="Painel Admin"
+                :to="{ name: 'Admin' }"
+                rounded="lg"
+              />
+            </template>
+          </v-tooltip>
+        </v-list>
       </template>
-    </v-app-bar>
+
+      <template #append>
+        <v-divider />
+        <v-list density="compact" nav class="py-2">
+          <v-tooltip :text="isRail ? 'Sair' : ''" location="end">
+            <template #activator="{ props }">
+              <v-list-item
+                v-bind="props"
+                prepend-icon="mdi-logout"
+                title="Sair"
+                rounded="lg"
+                base-color="white"
+                @click="handleLogout"
+              />
+            </template>
+          </v-tooltip>
+        </v-list>
+      </template>
+    </v-navigation-drawer>
+
+    <v-btn
+      :icon="rightDrawer ? 'mdi-close' : 'mdi-menu'"
+      color="green-darken-4"
+      style="position:fixed;top:12px;right:12px;z-index:1100;"
+      elevation="2"
+      @click="rightDrawer = !rightDrawer"
+    />
+
+    <v-navigation-drawer
+      v-model="rightDrawer"
+      location="right"
+      temporary
+      color="green-darken-4"
+      width="220"
+    >
+      <div v-if="auth.user" class="d-flex flex-column align-center py-6 px-4">
+        <v-avatar color="green-darken-1" size="64" class="mb-3">
+          <span class="text-white font-weight-bold text-h6">
+            {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
+          </span>
+        </v-avatar>
+        <span class="text-white font-weight-medium text-body-1 text-center">
+          {{ auth.profile?.name || 'Usuário' }}
+        </span>
+        <span v-if="auth.profile?.role === 'admin'" class="text-caption mt-1" style="color:#f5c542">Admin</span>
+      </div>
+
+      <v-divider />
+      <v-list density="compact" nav class="mt-1">
+        <v-list-item
+          prepend-icon="mdi-help-circle-outline"
+          title="Como Usar"
+          :to="{ name: 'HowTo' }"
+          rounded="lg"
+          @click="rightDrawer = false"
+        />
+        <v-list-item
+          prepend-icon="mdi-file-document-outline"
+          title="Termos"
+          :to="{ name: 'Terms' }"
+          rounded="lg"
+          @click="rightDrawer = false"
+        />
+      </v-list>
+    </v-navigation-drawer>
 
     <v-main>
       <v-container :fluid="fluid" :class="fluid ? 'pa-0' : 'py-6'">
         <slot />
       </v-container>
-    </v-main>
 
-    <v-footer color="green-darken-4" class="text-white">
+      <v-footer color="green-darken-4" class="text-white">
       <v-container class="py-10">
         <v-row>
           <v-col cols="12" sm="4" class="mb-6 mb-sm-0 text-center text-sm-start">
@@ -91,10 +211,10 @@
           <p class="text-caption" style="opacity:.75">
             &copy; {{ new Date().getFullYear() }} Bolão da Copa 26 &middot; Todos os direitos reservados
           </p>
-
         </div>
       </v-container>
     </v-footer>
+    </v-main>
 
     <v-snackbar
       v-model="toast.show"
@@ -113,6 +233,7 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useRouter } from 'vue-router'
@@ -124,6 +245,19 @@ defineProps({
 const auth = useAuthStore()
 const toast = useToastStore()
 const router = useRouter()
+
+const rightDrawer = ref(false)
+
+const RAIL_KEY = 'drawer-rail'
+const isRail = ref(localStorage.getItem(RAIL_KEY) === 'true')
+
+function toggleRail() {
+  isRail.value = !isRail.value
+}
+
+watch(isRail, (val) => {
+  localStorage.setItem(RAIL_KEY, String(val))
+})
 
 async function handleLogout() {
   await auth.logout()
