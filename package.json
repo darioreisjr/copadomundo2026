@@ -12,6 +12,7 @@
     "@google/genai": "^2.2.0",
     "@mdi/font": "^7.4.47",
     "@supabase/supabase-js": "^2.105.4",
+    "mailchecker": "^6.0.20",
     "pinia": "^3.0.4",
     "tslib": "^2.8.1",
     "vite-plugin-vuetify": "^2.1.3",

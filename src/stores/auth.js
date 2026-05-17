@@ -30,12 +30,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function register({ name, email, password }) {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { name } },
     })
     if (error) throw error
+    if (!data.user?.identities?.length) {
+      const err = new Error('Este e-mail já possui uma conta cadastrada.')
+      err.code = 'email_already_exists'
+      throw err
+    }
   }
 
   async function login({ email, password }) {
