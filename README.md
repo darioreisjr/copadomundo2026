@@ -65,6 +65,7 @@ O painel administrativo oferece:
 - Bloqueio de e-mail duplicado: botão desabilitado após erro de e-mail já cadastrado até o usuário trocar o endereço
 - Aceite obrigatório dos Termos de Uso e Privacidade ao criar conta
 - Página de Termos de Uso e Privacidade com 8 seções completas (LGPD, regras do bolão, privacidade, contato)
+- Página de confirmação de conta com instruções passo a passo para ativar a conta via e-mail, exibida automaticamente após o cadastro bem-sucedido
 - Transições animadas entre páginas (fade + translate)
 - Página "Como usar" com duas abas: guia de login e guia completo de criação de conta
 - Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
@@ -99,7 +100,7 @@ copa-do-mundo/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
     ├── App.vue                 # Root component com transição page-fade entre rotas
     ├── router/
-    │   └── index.js            # 12 rotas com guards de autenticação e papel
+    │   └── index.js            # 13 rotas com guards de autenticação e papel
     ├── stores/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
     │   ├── games.js            # CRUD de jogos, lançamento de resultados
@@ -121,6 +122,7 @@ copa-do-mundo/
         ├── ResetPasswordPage.vue   # Redefinição de senha com token
         ├── HowToPage.vue           # Guia de uso: abas de login e criação de conta
         ├── TermsPage.vue           # Termos de Uso e Privacidade (8 seções, LGPD)
+        ├── AccountCreatedPage.vue  # Instruções passo a passo de ativação de conta
         ├── DashboardPage.vue
         ├── GamesPage.vue
         ├── BetPage.vue
@@ -290,6 +292,7 @@ npm run preview  # Preview do build local
 | `/termos` | TermsPage | Público |
 | `/forgot-password` | ForgotPasswordPage | Público |
 | `/reset-password` | ResetPasswordPage | Público |
+| `/conta-criada` | AccountCreatedPage | Público |
 | `/dashboard` | DashboardPage | Autenticado |
 | `/games` | GamesPage | Autenticado |
 | `/games/:id/bet` | BetPage | Autenticado |

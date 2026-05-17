@@ -18,21 +18,6 @@
           </template>
         </v-snackbar>
 
-        <!-- Toast de sucesso no topo direito -->
-        <v-snackbar
-          v-model="success"
-          location="top right"
-          color="success"
-          :timeout="6000"
-          rounded="lg"
-        >
-          <v-icon icon="mdi-check-circle" class="mr-2" />
-          Conta criada! Verifique seu e-mail para confirmar o cadastro.
-          <template #actions>
-            <v-btn icon="mdi-close" variant="text" size="small" @click="success = false" />
-          </template>
-        </v-snackbar>
-
         <!-- Lado esquerdo: formulário -->
         <v-col cols="12" md="6" class="d-flex flex-column" style="background:#f5f5f5">
           <div class="pa-4 d-flex justify-end">
@@ -189,9 +174,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import MailChecker from 'mailchecker'
 
+const router = useRouter()
 const auth = useAuthStore()
 const formRef = ref(null)
 const name = ref('')
@@ -201,7 +188,6 @@ const confirmPassword = ref('')
 const loading = ref(false)
 const hasError = ref(false)
 const errorMsg = ref('')
-const success = ref(false)
 const showPassword = ref(false)
 const showConfirm = ref(false)
 const agreeTerms = ref(false)
@@ -284,7 +270,14 @@ async function handleRegister() {
   hasError.value = false
   try {
     await auth.register({ name: name.value, email: email.value, password: password.value })
-    success.value = true
+    name.value = ''
+    email.value = ''
+    password.value = ''
+    confirmPassword.value = ''
+    agreeTerms.value = false
+    emailValid.value = false
+    formRef.value.reset()
+    router.push({ name: 'AccountCreated' })
   } catch (e) {
     errorMsg.value = e.message || 'Erro ao criar conta. Tente novamente.'
     hasError.value = true
