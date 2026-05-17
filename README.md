@@ -46,6 +46,7 @@ O painel administrativo oferece:
 | Dados de jogos | OpenFootball (calendário oficial FIFA, sem API key) |
 | IA | Google Gemini API (`@google/genai`) |
 | Build | Vite 8 |
+| Validação de e-mail | mailchecker (provedores descartáveis) + EVA API (MX record) |
 
 ---
 
@@ -54,10 +55,18 @@ O painel administrativo oferece:
 ### Usuário
 - Cadastro e login com e-mail e senha (Supabase Auth)
 - Tela de login redesenhada: layout dividido, imagem lateral com blur, sem header/footer
+- Tela de criar conta redesenhada: layout dividido, imagem lateral (estádio futurístico), sem header/footer
 - Lembrar e-mail: checkbox "Lembrar-me" salva o e-mail no localStorage para próximo acesso
 - Recuperação de senha por e-mail (link enviado pelo Supabase)
 - Redefinição de senha via página dedicada com validação de confirmação
-- Página "Como usar" com guia passo a passo da tela de login, acessível pelo menu
+- Validação de e-mail em 2 camadas: bloqueio offline de provedores descartáveis (mailchecker) + verificação de domínio real via EVA API (MX record)
+- Requisitos de senha fortes: mínimo 8 caracteres, letra maiúscula, minúscula e número, com indicador visual em tempo real
+- Botão "Criar conta" habilitado somente quando todos os requisitos de senha, e-mail válido e aceite dos termos estão ok
+- Bloqueio de e-mail duplicado: botão desabilitado após erro de e-mail já cadastrado até o usuário trocar o endereço
+- Aceite obrigatório dos Termos de Uso e Privacidade ao criar conta
+- Página de Termos de Uso e Privacidade com 8 seções completas (LGPD, regras do bolão, privacidade, contato)
+- Transições animadas entre páginas (fade + translate)
+- Página "Como usar" com duas abas: guia de login e guia completo de criação de conta
 - Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
 - Dashboard pessoal com pontuação, posição no ranking, acertos exatos e total de palpites
 - Listagem de jogos com filtros por status e fase
@@ -88,9 +97,9 @@ copa-do-mundo/
 │   └── icons.svg
 └── src/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
-    ├── App.vue                 # Root component (<router-view />)
+    ├── App.vue                 # Root component com transição page-fade entre rotas
     ├── router/
-    │   └── index.js            # 10 rotas com guards de autenticação e papel
+    │   └── index.js            # 12 rotas com guards de autenticação e papel
     ├── stores/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
     │   ├── games.js            # CRUD de jogos, lançamento de resultados
@@ -110,7 +119,8 @@ copa-do-mundo/
         ├── RegisterPage.vue
         ├── ForgotPasswordPage.vue  # Recuperação de senha por e-mail
         ├── ResetPasswordPage.vue   # Redefinição de senha com token
-        ├── HowToPage.vue           # Guia de uso da tela de login
+        ├── HowToPage.vue           # Guia de uso: abas de login e criação de conta
+        ├── TermsPage.vue           # Termos de Uso e Privacidade (8 seções, LGPD)
         ├── DashboardPage.vue
         ├── GamesPage.vue
         ├── BetPage.vue
@@ -250,9 +260,12 @@ Crie um arquivo `.env` na raiz com base no `.env.example`:
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-anon-key
 VITE_GEMINI_API_KEY=sua-gemini-api-key
+VITE_EVA_API_URL=https://api.eva.pingutil.com/email
 ```
 
 > As variáveis `VITE_*` são expostas no bundle do cliente. **Nunca** coloque a service role key do Supabase aqui.
+
+> `VITE_EVA_API_URL` — API gratuita sem necessidade de chave, usada para verificar se o domínio do e-mail possui servidor de e-mail ativo (MX record) durante o cadastro.
 
 ---
 
@@ -274,6 +287,7 @@ npm run preview  # Preview do build local
 | `/login` | LoginPage | Público (redireciona se logado) |
 | `/register` | RegisterPage | Público (redireciona se logado) |
 | `/como-usar` | HowToPage | Público |
+| `/termos` | TermsPage | Público |
 | `/forgot-password` | ForgotPasswordPage | Público |
 | `/reset-password` | ResetPasswordPage | Público |
 | `/dashboard` | DashboardPage | Autenticado |
