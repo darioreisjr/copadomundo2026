@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="text-h5 font-weight-bold mb-6">⚙️ Painel Administrativo</div>
+    <div class="text-h5 font-weight-bold mb-4">Painel Administrativo</div>
 
     <v-tabs v-model="tab" color="green-darken-3" class="mb-6">
       <v-tab value="gemini">Importar jogos</v-tab>
@@ -11,49 +11,84 @@
     <!-- ===== TAB: GEMINI ===== -->
     <v-window v-model="tab">
       <v-window-item value="gemini">
-        <v-card class="pa-6" elevation="2">
-          <div class="text-subtitle-1 font-weight-medium mb-2">
-            Importar jogos reais da Copa do Mundo 2026
-          </div>
-          <v-alert type="info" variant="tonal" class="mb-4" density="compact">
-            Os jogos são buscados diretamente do calendário oficial da FIFA via OpenFootball.
-            O Gemini adiciona traduções e emojis de bandeiras. Revise os dados antes de salvar.
-          </v-alert>
-
+        <!-- Estado vazio: nenhuma ação iniciada e sem resultado anterior -->
+        <div
+          v-if="!geminiLoading && !suggestedGames.length && !syncResult && !geminiError"
+          class="d-flex flex-column align-center justify-center text-center"
+          style="min-height: calc(100vh - 200px);"
+        >
+          <v-icon icon="mdi-cloud-download-outline" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
+          <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
+            Importar jogos da Copa do Mundo 2026
+          </p>
+          <p class="text-body-2 text-medium-emphasis mb-6" style="max-width:400px">
+            Os jogos são buscados do calendário oficial da FIFA via OpenFootball. O Gemini adiciona traduções e emojis de bandeiras. Revise os dados antes de salvar.
+          </p>
           <v-btn
             color="green-darken-3"
             prepend-icon="mdi-soccer"
-            :loading="geminiLoading && !geminiProgress"
-            :disabled="geminiLoading"
+            size="large"
+            rounded="lg"
             @click="callGemini"
-            class="mb-4"
           >
-            Importar jogos da Copa 2026
+            Importar jogos
           </v-btn>
+        </div>
 
-          <v-card
-            v-if="geminiLoading && geminiProgress"
-            variant="tonal"
-            color="green-darken-3"
-            class="pa-4 mb-4"
-          >
-            <div class="d-flex align-center ga-3">
-              <v-progress-circular indeterminate color="green-darken-3" size="24" width="3" />
-              <div class="text-body-2 font-weight-medium">{{ geminiProgress.message }}</div>
-            </div>
-          </v-card>
+        <!-- Loading -->
+        <div
+          v-else-if="geminiLoading"
+          class="d-flex flex-column align-center justify-center text-center"
+          style="min-height: calc(100vh - 200px);"
+        >
+          <v-progress-circular indeterminate color="green-darken-3" size="64" width="5" class="mb-6" />
+          <p class="text-h6 font-weight-medium text-medium-emphasis mb-1">
+            {{ geminiProgress?.message ?? 'Carregando...' }}
+          </p>
+          <p class="text-body-2 text-medium-emphasis">Aguarde, isso pode levar alguns segundos.</p>
+        </div>
 
+        <!-- Conteúdo: jogos sugeridos ou resultado da sync -->
+        <v-card v-else class="pa-6" elevation="2">
           <v-alert v-if="geminiError" type="error" class="mb-4" closable @click:close="geminiError = ''">
             {{ geminiError }}
           </v-alert>
 
-          <!-- Preview suggested games -->
+          <!-- Resultado da sincronização -->
+          <v-alert
+            v-if="syncResult"
+            :type="syncResult.errors > 0 ? 'warning' : 'success'"
+            class="mb-6"
+            variant="tonal"
+          >
+            <div v-if="syncResult.inserted > 0">{{ syncResult.inserted }} jogo(s) novo(s) inserido(s)</div>
+            <div v-if="syncResult.updated > 0">{{ syncResult.updated }} jogo(s) atualizado(s)</div>
+            <div v-if="syncResult.unchanged > 0">{{ syncResult.unchanged }} jogo(s) sem alteração</div>
+            <div v-if="syncResult.errors > 0">{{ syncResult.errors }} erro(s) ao salvar</div>
+            <div v-if="syncResult.inserted === 0 && syncResult.updated === 0 && syncResult.errors === 0">
+              Nenhuma alteração — todos os jogos já estão atualizados.
+            </div>
+          </v-alert>
+
           <template v-if="suggestedGames.length">
-            <div class="text-subtitle-1 font-weight-medium mb-3">
-              Jogos encontrados ({{ suggestedGames.length }}) — revise antes de confirmar:
+            <div class="d-flex justify-space-between align-center mb-4">
+              <div class="text-subtitle-1 font-weight-medium">
+                Jogos encontrados ({{ suggestedGames.length }}) — revise antes de confirmar:
+              </div>
+              <div class="d-flex ga-2">
+                <v-btn variant="tonal" prepend-icon="mdi-refresh" @click="callGemini">Reimportar</v-btn>
+                <v-btn
+                  color="green-darken-3"
+                  prepend-icon="mdi-check-all"
+                  :loading="savingGames"
+                  @click="confirmGames"
+                >
+                  Confirmar e sincronizar
+                </v-btn>
+              </div>
             </div>
 
-            <v-table class="mb-4">
+            <v-table>
               <thead>
                 <tr>
                   <th>Seleção A</th>
@@ -84,40 +119,58 @@
                 </tr>
               </tbody>
             </v-table>
-
-            <v-btn
-              color="green-darken-3"
-              prepend-icon="mdi-check-all"
-              :loading="savingGames"
-              @click="confirmGames"
-            >
-              Confirmar e sincronizar
-            </v-btn>
           </template>
 
-          <!-- Resultado da sincronização -->
-          <v-alert
-            v-if="syncResult"
-            :type="syncResult.errors > 0 ? 'warning' : 'success'"
-            class="mt-4"
-            variant="tonal"
-          >
-            <div v-if="syncResult.inserted > 0">{{ syncResult.inserted }} jogo(s) novo(s) inserido(s)</div>
-            <div v-if="syncResult.updated > 0">{{ syncResult.updated }} jogo(s) atualizado(s)</div>
-            <div v-if="syncResult.unchanged > 0">{{ syncResult.unchanged }} jogo(s) sem alteração</div>
-            <div v-if="syncResult.errors > 0">{{ syncResult.errors }} erro(s) ao salvar</div>
-            <div v-if="syncResult.inserted === 0 && syncResult.updated === 0 && syncResult.errors === 0">
-              Nenhuma alteração — todos os jogos já estão atualizados.
-            </div>
-          </v-alert>
+          <div v-if="syncResult && !suggestedGames.length" class="d-flex justify-center mt-4">
+            <v-btn variant="tonal" prepend-icon="mdi-refresh" @click="callGemini">Importar novamente</v-btn>
+          </div>
         </v-card>
       </v-window-item>
 
       <!-- ===== TAB: MANAGE GAMES ===== -->
       <v-window-item value="games">
-        <v-card class="pa-6" elevation="2">
+        <!-- Loading -->
+        <v-progress-linear v-if="gamesStore.loading" indeterminate color="green-darken-3" class="mb-4" />
+
+        <!-- Estado vazio -->
+        <div
+          v-else-if="!gamesStore.games.length"
+          class="d-flex flex-column align-center justify-center text-center"
+          style="min-height: calc(100vh - 200px);"
+        >
+          <v-icon icon="mdi-calendar-blank-outline" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
+          <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
+            Nenhum jogo cadastrado
+          </p>
+          <p class="text-body-2 text-medium-emphasis mb-6" style="max-width:360px">
+            Adicione jogos manualmente ou use a aba "Importar jogos" para buscar o calendário oficial da Copa 2026.
+          </p>
+          <div class="d-flex ga-3">
+            <v-btn
+              color="green-darken-3"
+              prepend-icon="mdi-plus"
+              size="large"
+              rounded="lg"
+              @click="openNewGameDialog"
+            >
+              Novo jogo
+            </v-btn>
+            <v-btn
+              variant="tonal"
+              prepend-icon="mdi-cloud-download-outline"
+              size="large"
+              rounded="lg"
+              @click="tab = 'gemini'"
+            >
+              Importar jogos
+            </v-btn>
+          </div>
+        </div>
+
+        <!-- Tabela com jogos -->
+        <v-card v-else class="pa-6" elevation="2">
           <div class="d-flex justify-space-between align-center mb-4">
-            <div class="text-subtitle-1 font-weight-medium">Jogos cadastrados</div>
+            <div class="text-subtitle-1 font-weight-medium">Jogos cadastrados ({{ gamesStore.games.length }})</div>
             <v-btn
               color="green-darken-3"
               prepend-icon="mdi-plus"
@@ -127,9 +180,7 @@
             </v-btn>
           </div>
 
-          <v-progress-linear v-if="gamesStore.loading" indeterminate color="green-darken-3" class="mb-4" />
-
-          <v-table v-if="gamesStore.games.length">
+          <v-table>
             <thead>
               <tr>
                 <th>Jogo</th>
@@ -165,12 +216,40 @@
 
       <!-- ===== TAB: RESULTS ===== -->
       <v-window-item value="results">
-        <v-card class="pa-6" elevation="2">
+        <!-- Loading -->
+        <v-progress-linear v-if="gamesStore.loading" indeterminate color="green-darken-3" class="mb-4" />
+
+        <!-- Estado vazio -->
+        <div
+          v-else-if="!pendingResults.length"
+          class="d-flex flex-column align-center justify-center text-center"
+          style="min-height: calc(100vh - 200px);"
+        >
+          <v-icon icon="mdi-scoreboard-outline" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
+          <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
+            Nenhum resultado para inserir
+          </p>
+          <p class="text-body-2 text-medium-emphasis mb-6" style="max-width:380px">
+            Os jogos aparecerão aqui assim que estiverem com status "Ao vivo" ou "Encerrado". Gerencie os status na aba "Gerenciar jogos".
+          </p>
+          <v-btn
+            variant="tonal"
+            prepend-icon="mdi-calendar-check-outline"
+            size="large"
+            rounded="lg"
+            @click="tab = 'games'"
+          >
+            Gerenciar jogos
+          </v-btn>
+        </div>
+
+        <!-- Tabela de resultados -->
+        <v-card v-else class="pa-6" elevation="2">
           <div class="text-subtitle-1 font-weight-medium mb-4">
-            Insira os resultados finais. A pontuação será calculada automaticamente.
+            Jogos aguardando resultado ({{ pendingResults.length }}) — a pontuação será calculada automaticamente.
           </div>
 
-          <v-table v-if="pendingResults.length">
+          <v-table>
             <thead>
               <tr>
                 <th>Jogo</th>
@@ -211,9 +290,6 @@
               </tr>
             </tbody>
           </v-table>
-          <v-alert v-else type="info" variant="tonal">
-            Nenhum jogo aguardando resultado.
-          </v-alert>
         </v-card>
       </v-window-item>
     </v-window>

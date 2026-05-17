@@ -52,14 +52,16 @@
       </div>
     </template>
 
-    <div v-else-if="!rankingStore.loading" class="empty-state d-flex flex-column align-center justify-center">
-      <div class="empty-state__icon mb-6">
-        <v-icon icon="mdi-podium-silver" size="80" color="green-darken-2" style="opacity:.35" />
-      </div>
+    <div
+      v-else-if="!rankingStore.loading"
+      class="empty-state d-flex flex-column align-center justify-center text-center"
+      style="min-height: calc(100vh - 120px);"
+    >
+      <v-icon icon="mdi-podium-silver" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
       <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
         Ranking ainda não iniciado
       </p>
-      <p class="text-body-2 text-medium-emphasis text-center" style="max-width:360px">
+      <p class="text-body-2 text-medium-emphasis" style="max-width:360px">
         O ranking aparecerá aqui assim que os primeiros resultados forem apurados. Faça seus palpites e aguarde!
       </p>
       <v-btn

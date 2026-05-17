@@ -32,38 +32,61 @@
       </v-col>
     </v-row>
 
-    <!-- Open for betting -->
-    <div class="text-h6 font-weight-medium mb-3">🟢 Abertos para palpite</div>
-    <v-row v-if="openGames.length" class="mb-6">
-      <v-col v-for="game in openGames" :key="game.id" cols="12" sm="6" md="4">
-        <GameCard :game="game" :bet="betMap[game.id]" />
-      </v-col>
-    </v-row>
-    <v-alert v-else type="info" variant="tonal" class="mb-6">
-      Nenhum jogo aberto para palpite no momento.
-    </v-alert>
+    <!-- Estado vazio global: nenhum jogo cadastrado -->
+    <div
+      v-if="!gamesStore.loading && !gamesStore.games.length"
+      class="d-flex flex-column align-center justify-center text-center"
+      style="min-height: calc(100vh - 260px);"
+    >
+      <v-icon icon="mdi-soccer" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
+      <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
+        Nenhum jogo disponível ainda
+      </p>
+      <p class="text-body-2 text-medium-emphasis" style="max-width:360px">
+        Os jogos da Copa do Mundo 2026 ainda não foram cadastrados. Volte em breve!
+      </p>
+    </div>
 
-    <!-- Upcoming games -->
-    <div class="text-h6 font-weight-medium mb-3">📅 Próximos jogos</div>
-    <v-row v-if="upcomingGames.length" class="mb-6">
-      <v-col v-for="game in upcomingGames.slice(0,6)" :key="game.id" cols="12" sm="6" md="4">
-        <GameCard :game="game" :bet="betMap[game.id]" />
-      </v-col>
-    </v-row>
-    <v-alert v-else type="info" variant="tonal" class="mb-6">
-      Nenhum próximo jogo cadastrado.
-    </v-alert>
+    <template v-else>
+      <!-- Open for betting -->
+      <div class="text-h6 font-weight-medium mb-3">Abertos para palpite</div>
+      <v-row v-if="openGames.length" class="mb-6">
+        <v-col v-for="game in openGames" :key="game.id" cols="12" sm="6" md="4">
+          <GameCard :game="game" :bet="betMap[game.id]" />
+        </v-col>
+      </v-row>
+      <div v-else class="d-flex flex-column align-center justify-center text-center py-10 mb-6">
+        <v-icon icon="mdi-timer-sand" size="56" color="green-darken-2" style="opacity:.35" class="mb-4" />
+        <p class="text-body-1 font-weight-medium text-medium-emphasis mb-1">Nenhum jogo aberto para palpite</p>
+        <p class="text-body-2 text-medium-emphasis">Aguarde — os jogos serão liberados em breve.</p>
+      </div>
 
-    <!-- Recent results -->
-    <div class="text-h6 font-weight-medium mb-3">✅ Últimos resultados</div>
-    <v-row v-if="finishedGames.length">
-      <v-col v-for="game in finishedGames.slice(0,6)" :key="game.id" cols="12" sm="6" md="4">
-        <GameCard :game="game" :bet="betMap[game.id]" />
-      </v-col>
-    </v-row>
-    <v-alert v-else type="info" variant="tonal">
-      Nenhum resultado registrado ainda.
-    </v-alert>
+      <!-- Upcoming games -->
+      <div class="text-h6 font-weight-medium mb-3">Próximos jogos</div>
+      <v-row v-if="upcomingGames.length" class="mb-6">
+        <v-col v-for="game in upcomingGames.slice(0,6)" :key="game.id" cols="12" sm="6" md="4">
+          <GameCard :game="game" :bet="betMap[game.id]" />
+        </v-col>
+      </v-row>
+      <div v-else class="d-flex flex-column align-center justify-center text-center py-10 mb-6">
+        <v-icon icon="mdi-calendar-blank-outline" size="56" color="green-darken-2" style="opacity:.35" class="mb-4" />
+        <p class="text-body-1 font-weight-medium text-medium-emphasis mb-1">Nenhum jogo agendado</p>
+        <p class="text-body-2 text-medium-emphasis">O calendário ainda não foi publicado.</p>
+      </div>
+
+      <!-- Recent results -->
+      <div class="text-h6 font-weight-medium mb-3">Últimos resultados</div>
+      <v-row v-if="finishedGames.length">
+        <v-col v-for="game in finishedGames.slice(0,6)" :key="game.id" cols="12" sm="6" md="4">
+          <GameCard :game="game" :bet="betMap[game.id]" />
+        </v-col>
+      </v-row>
+      <div v-else class="d-flex flex-column align-center justify-center text-center py-10">
+        <v-icon icon="mdi-flag-checkered" size="56" color="green-darken-2" style="opacity:.35" class="mb-4" />
+        <p class="text-body-1 font-weight-medium text-medium-emphasis mb-1">Nenhum resultado registrado</p>
+        <p class="text-body-2 text-medium-emphasis">Os resultados aparecerão aqui após os jogos.</p>
+      </div>
+    </template>
   </AppLayout>
 </template>
 
