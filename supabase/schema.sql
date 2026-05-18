@@ -1,17 +1,36 @@
 -- ============================================================
 -- Copa do Mundo - Bolão MVP Schema
+-- Idempotente: pode ser rodado múltiplas vezes sem erros.
 -- Run this in Supabase SQL Editor
 -- ============================================================
 
+-- ============================================================
 -- profiles: extends auth.users
+-- ============================================================
 create table if not exists public.profiles (
-  id         uuid primary key references auth.users(id) on delete cascade,
-  name       text not null,
-  role       text not null default 'user' check (role in ('user', 'admin')),
-  created_at timestamptz not null default now()
+  id                     uuid        primary key references auth.users(id) on delete cascade,
+  name                   text        not null,
+  role                   text        not null default 'user' check (role in ('user', 'admin')),
+  birth_date             date,
+  phone                  text,
+  avatar_url             text,
+  notifications_email    boolean     not null default true,
+  notifications_ranking  boolean     not null default true,
+  created_at             timestamptz not null default now()
 );
 
+-- Colunas adicionadas após criação inicial — ignoradas se já existirem
+alter table public.profiles add column if not exists birth_date            date;
+alter table public.profiles add column if not exists phone                 text;
+alter table public.profiles add column if not exists avatar_url            text;
+alter table public.profiles add column if not exists notifications_email   boolean not null default true;
+alter table public.profiles add column if not exists notifications_ranking boolean not null default true;
+
 alter table public.profiles enable row level security;
+
+drop policy if exists "profiles: users read own"  on public.profiles;
+drop policy if exists "profiles: users update own" on public.profiles;
+drop policy if exists "profiles: service insert"   on public.profiles;
 
 create policy "profiles: users read own" on public.profiles
   for select using (auth.uid() = id);
@@ -19,7 +38,6 @@ create policy "profiles: users read own" on public.profiles
 create policy "profiles: users update own" on public.profiles
   for update using (auth.uid() = id);
 
--- Allow inserts from trigger
 create policy "profiles: service insert" on public.profiles
   for insert with check (true);
 
@@ -38,34 +56,47 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- Permite que o usuário exclua a própria conta via RPC
+create or replace function public.delete_user()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+
 -- ============================================================
 -- games
 -- ============================================================
 create table if not exists public.games (
-  id              uuid primary key default gen_random_uuid(),
-  team_a          text not null,
-  team_b          text not null,
-  flag_a          text,
-  flag_b          text,
-  match_date      timestamptz not null,
-  phase           text not null,  -- 'group', 'round_of_16', 'quarter', 'semi', 'final'
-  group_name      text,           -- 'A', 'B', ... (nullable for knockout)
-  status          text not null default 'upcoming'
-                  check (status in ('upcoming','open','closed','live','finished')),
-  score_a         int,
-  score_b         int,
-  bet_opens_at    timestamptz,
-  bet_closes_at   timestamptz,
-  created_at      timestamptz not null default now()
+  id            uuid        primary key default gen_random_uuid(),
+  team_a        text        not null,
+  team_b        text        not null,
+  flag_a        text,
+  flag_b        text,
+  match_date    timestamptz not null,
+  phase         text        not null,  -- 'group', 'round_of_16', 'quarter', 'semi', 'final'
+  group_name    text,                  -- 'A', 'B', ... (nullable for knockout)
+  status        text        not null default 'upcoming'
+                check (status in ('upcoming','open','closed','live','finished')),
+  score_a       int,
+  score_b       int,
+  bet_opens_at  timestamptz,
+  bet_closes_at timestamptz,
+  created_at    timestamptz not null default now()
 );
 
 -- Evita duplicatas na importação: mesmo confronto não pode ter duas entradas na mesma data
-alter table public.games
-  drop constraint if exists games_unique_match;
-alter table public.games
-  add constraint games_unique_match unique (team_a, team_b, match_date);
+alter table public.games drop constraint if exists games_unique_match;
+alter table public.games add  constraint games_unique_match unique (team_a, team_b, match_date);
 
 alter table public.games enable row level security;
+
+drop policy if exists "games: anyone reads"  on public.games;
+drop policy if exists "games: admin manages" on public.games;
 
 create policy "games: anyone reads" on public.games
   for select using (true);
@@ -103,19 +134,24 @@ create trigger before_game_update
 -- bets
 -- ============================================================
 create table if not exists public.bets (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references public.profiles(id) on delete cascade,
-  game_id     uuid not null references public.games(id) on delete cascade,
-  score_a     int not null check (score_a >= 0),
-  score_b     int not null check (score_b >= 0),
-  points      int not null default 0,
-  hit_type    text check (hit_type in ('exact','winner','draw',null)),
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
+  id         uuid        primary key default gen_random_uuid(),
+  user_id    uuid        not null references public.profiles(id) on delete cascade,
+  game_id    uuid        not null references public.games(id)    on delete cascade,
+  score_a    int         not null check (score_a >= 0),
+  score_b    int         not null check (score_b >= 0),
+  points     int         not null default 0,
+  hit_type   text        check (hit_type in ('exact','winner','draw',null)),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   unique (user_id, game_id)
 );
 
 alter table public.bets enable row level security;
+
+drop policy if exists "bets: users read own"   on public.bets;
+drop policy if exists "bets: users insert own" on public.bets;
+drop policy if exists "bets: users update own" on public.bets;
+drop policy if exists "bets: admin reads all"  on public.bets;
 
 create policy "bets: users read own" on public.bets
   for select using (auth.uid() = user_id);
@@ -132,19 +168,21 @@ create policy "bets: admin reads all" on public.bets
   );
 
 -- ============================================================
--- ranking (materialized view updated after each result)
+-- ranking (tabela atualizada após cada resultado)
 -- ============================================================
 create table if not exists public.ranking (
-  user_id          uuid primary key references public.profiles(id) on delete cascade,
-  total_points     int not null default 0,
-  total_bets       int not null default 0,
-  exact_hits       int not null default 0,
-  winner_hits      int not null default 0,
-  draw_hits        int not null default 0,
-  updated_at       timestamptz not null default now()
+  user_id      uuid        primary key references public.profiles(id) on delete cascade,
+  total_points int         not null default 0,
+  total_bets   int         not null default 0,
+  exact_hits   int         not null default 0,
+  winner_hits  int         not null default 0,
+  draw_hits    int         not null default 0,
+  updated_at   timestamptz not null default now()
 );
 
 alter table public.ranking enable row level security;
+
+drop policy if exists "ranking: anyone reads" on public.ranking;
 
 create policy "ranking: anyone reads" on public.ranking
   for select using (true);
@@ -188,8 +226,8 @@ $$;
 create or replace function public.recalculate_game_bets(p_game_id uuid)
 returns void language plpgsql security definer as $$
 declare
-  g public.games%rowtype;
-  b public.bets%rowtype;
+  g   public.games%rowtype;
+  b   public.bets%rowtype;
   hit text;
   pts int;
 begin

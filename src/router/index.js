@@ -14,6 +14,7 @@ const routes = [
   { path: '/games',     name: 'Games',    component: () => import('@/pages/GamesPage.vue') },
   { path: '/games/:id/bet', name: 'Bet', component: () => import('@/pages/BetPage.vue') },
   { path: '/ranking',   name: 'Ranking',  component: () => import('@/pages/RankingPage.vue') },
+  { path: '/minha-conta', name: 'Account', component: () => import('@/pages/AccountPage.vue') },
   { path: '/admin',     name: 'Admin',    component: () => import('@/pages/AdminPage.vue'),    meta: { adminOnly: true } },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/pages/NotFoundPage.vue'), meta: { public: true } },
 ]
@@ -27,7 +28,8 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore()
   if (!auth.initialized) await auth.init()
 
-  if (!to.meta.public && !auth.user) return { name: 'Login' }
+  if (!to.meta.public && !auth.user && auth.intentionalLogout) return { name: 'Login' }
+  if (!to.meta.public && !auth.user && !auth.intentionalLogout) return
   if (to.meta.adminOnly && auth.profile?.role !== 'admin') return { name: 'Dashboard' }
   if ((to.name === 'Login' || to.name === 'Register') && auth.user) return { name: 'Dashboard' }
 })

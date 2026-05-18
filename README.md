@@ -74,6 +74,11 @@ O painel administrativo oferece:
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo (criação e edição enquanto a aposta está aberta)
 - Ranking global com medalhas para o top 3
+- **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
+  - **Dados Pessoais:** editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone; e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
+  - **Segurança:** campo senha atual obrigatório + nova senha + confirmação; botão habilitado somente quando todos os requisitos estão satisfeitos; campos limpos automaticamente após troca bem-sucedida
+  - **Preferências:** toggles de notificações por e-mail e por ranking com salvamento automático ao alternar
+  - **Excluir Conta:** zona de perigo com checkbox de confirmação + diálogo de confirmação final; exclusão em cascata via RPC SQL
 
 ### Admin
 - Importação dos jogos reais da Copa 2026 em ~5s (antes levava 20-40s)
@@ -101,7 +106,7 @@ copa-do-mundo/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
     ├── App.vue                 # Root component com transição page-fade entre rotas
     ├── router/
-    │   └── index.js            # 13 rotas com guards de autenticação e papel
+    │   └── index.js            # 15 rotas com guards de autenticação e papel
     ├── stores/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
     │   ├── games.js            # CRUD de jogos, lançamento de resultados
@@ -128,7 +133,9 @@ copa-do-mundo/
         ├── GamesPage.vue
         ├── BetPage.vue
         ├── RankingPage.vue
-        └── AdminPage.vue
+        ├── AccountPage.vue         # Minha Conta: dados pessoais, segurança, preferências, exclusão
+        ├── AdminPage.vue
+        └── NotFoundPage.vue        # 404 animado com bola de futebol
 ```
 
 ---
@@ -147,6 +154,11 @@ Extensão de `auth.users`. Criada automaticamente via trigger no signup.
 | id | uuid | FK → auth.users |
 | name | text | Nome do usuário |
 | role | text | `'user'` \| `'admin'` |
+| birth_date | date | Data de nascimento (opcional, validação de maioridade ≥ 18 anos) |
+| phone | text | Telefone (opcional) |
+| avatar_url | text | URL do avatar (reservado para uso futuro) |
+| notifications_email | boolean | Preferência de notificações por e-mail (padrão: true) |
+| notifications_ranking | boolean | Preferência de notificações de ranking (padrão: true) |
 | created_at | timestamptz | — |
 
 #### `games`
@@ -199,6 +211,7 @@ Extensão de `auth.users`. Criada automaticamente via trigger no signup.
 | `recalculate_game_bets(game_id)` | Calcula pontos de todos os palpites de um jogo e atualiza ranking |
 | `handle_new_user()` | Trigger: cria perfil automaticamente no signup |
 | `set_bet_window()` | Trigger: define janela de apostas ao criar/atualizar jogo |
+| `delete_user()` | RPC com SECURITY DEFINER: exclui o usuário autenticado de `auth.users` (cascade apaga profiles, bets e ranking) |
 
 ---
 
@@ -298,7 +311,9 @@ npm run preview  # Preview do build local
 | `/games` | GamesPage | Autenticado |
 | `/games/:id/bet` | BetPage | Autenticado |
 | `/ranking` | RankingPage | Autenticado |
+| `/minha-conta` | AccountPage | Autenticado |
 | `/admin` | AdminPage | Admin apenas |
+| `/:pathMatch(.*)*` | NotFoundPage | Público (404) |
 
 ---
 
@@ -309,6 +324,8 @@ npm run preview  # Preview do build local
 | Ver jogos | ✅ | ✅ |
 | Fazer palpite | ✅ | ✅ |
 | Ver ranking | ✅ | ✅ |
+| Editar próprio perfil e senha | ✅ | ✅ |
+| Excluir própria conta | ✅ | ✅ |
 | Criar/editar jogos | ❌ | ✅ |
 | Lançar resultados | ❌ | ✅ |
 | Acessar painel admin | ❌ | ✅ |

@@ -133,6 +133,13 @@
         <v-divider />
         <v-list density="compact" nav class="mt-1">
           <v-list-item
+            prepend-icon="mdi-account-cog"
+            title="Minha Conta"
+            :to="{ name: 'Account' }"
+            rounded="lg"
+            @click="rightDrawer = false"
+          />
+          <v-list-item
             prepend-icon="mdi-help-circle-outline"
             title="Como Usar"
             :to="{ name: 'HowTo' }"
