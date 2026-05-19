@@ -86,6 +86,7 @@ O painel administrativo oferece:
 - Preview com indicador visual por jogo: **Novo** (verde), **Alterado** (laranja), **Igual** (cinza)
 - CRUD de jogos (times, flags, data, fase, grupo, status)
 - Lançamento de resultados e recálculo automático de pontos via RPC SQL
+- Gerenciamento de avatares: cadastro, edição, ativação/desativação e exclusão de avatares disponíveis para os usuários escolherem em seus perfis
 
 ---
 
@@ -98,7 +99,8 @@ copa-do-mundo/
 ├── package.json
 ├── .env.example
 ├── supabase/
-│   └── schema.sql              # Schema completo: tabelas, funções, triggers, RLS
+│   ├── schema.sql              # Schema principal: tabelas, funções, triggers, RLS
+│   └── avatars-schema.sql      # Schema isolado: tabela avatars, RLS, bucket de storage
 ├── public/
 │   ├── favicon.svg
 │   └── icons.svg
@@ -106,9 +108,10 @@ copa-do-mundo/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
     ├── App.vue                 # Root component com transição page-fade entre rotas
     ├── router/
-    │   └── index.js            # 15 rotas com guards de autenticação e papel
+    │   └── index.js            # 16 rotas com guards de autenticação e papel
     ├── stores/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
+    │   ├── avatars.js          # CRUD de avatares + upload para Supabase Storage
     │   ├── games.js            # CRUD de jogos, lançamento de resultados
     │   ├── bets.js             # Palpites do usuário autenticado
     │   ├── ranking.js          # Leaderboard global
@@ -135,6 +138,7 @@ copa-do-mundo/
         ├── RankingPage.vue
         ├── AccountPage.vue         # Minha Conta: dados pessoais, segurança, preferências, exclusão
         ├── AdminPage.vue
+        ├── AdminAvatarsPage.vue    # Gerenciamento de avatares (somente admin)
         └── NotFoundPage.vue        # 404 animado com bola de futebol
 ```
 
@@ -142,7 +146,8 @@ copa-do-mundo/
 
 ## Banco de Dados
 
-Schema completo em [supabase/schema.sql](supabase/schema.sql). Aplicar diretamente no SQL Editor do Supabase.
+Schema principal em [supabase/schema.sql](supabase/schema.sql).
+Schema de avatares em [supabase/avatars-schema.sql](supabase/avatars-schema.sql) — aplicar separadamente, após o schema principal.
 
 ### Tabelas
 
@@ -202,6 +207,22 @@ Extensão de `auth.users`. Criada automaticamente via trigger no signup.
 
 > Atualizada via RPC `recalculate_game_bets(game_id)` ao lançar um resultado.
 
+#### `avatars`
+Catálogo de avatares disponíveis para os usuários escolherem em seus perfis. Gerenciado pelo admin via `/admin/avatares`.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| id | uuid | PK |
+| name | text | Nome de exibição do avatar |
+| url | text | URL pública da imagem |
+| category | text | Categoria opcional para agrupamento |
+| active | boolean | Se visível para os usuários (padrão: true) |
+| created_by | uuid | FK → auth.users (admin que criou) |
+| created_at | timestamptz | — |
+
+> RLS: usuários autenticados veem apenas avatares com `active = true`; admins veem todos.
+> Storage: bucket público `avatars` no Supabase Storage armazena as imagens enviadas via upload.
+
 ### Funções SQL principais
 
 | Função | Descrição |
@@ -249,9 +270,10 @@ npm install
 cp .env.example .env
 # Edite o .env com suas chaves (ver seção abaixo)
 
-# 4. Aplique o schema no Supabase
+# 4. Aplique os schemas no Supabase
 # Acesse seu projeto Supabase → SQL Editor
-# Cole e execute o conteúdo de supabase/schema.sql
+# Execute primeiro: supabase/schema.sql
+# Execute depois: supabase/avatars-schema.sql
 
 # 5. Adicione a constraint de unicidade (se o banco já existia)
 # Execute no SQL Editor do Supabase:
@@ -313,6 +335,7 @@ npm run preview  # Preview do build local
 | `/ranking` | RankingPage | Autenticado |
 | `/minha-conta` | AccountPage | Autenticado |
 | `/admin` | AdminPage | Admin apenas |
+| `/admin/avatares` | AdminAvatarsPage | Admin apenas |
 | `/:pathMatch(.*)*` | NotFoundPage | Público (404) |
 
 ---
@@ -330,14 +353,15 @@ npm run preview  # Preview do build local
 | Lançar resultados | ❌ | ✅ |
 | Acessar painel admin | ❌ | ✅ |
 | Ver palpites de outros | ❌ | ✅ |
+| Gerenciar avatares do catálogo | ❌ | ✅ |
 
-RLS (Row Level Security) ativado em todas as tabelas. As políticas estão definidas em `supabase/schema.sql`.
+RLS (Row Level Security) ativado em todas as tabelas. As políticas estão definidas em `supabase/schema.sql` e `supabase/avatars-schema.sql`.
 
 ---
 
 ## Painel Admin
 
-Acesse `/admin` com uma conta de role `admin`.
+Acesse `/admin` com uma conta de role `admin`. O menu lateral exibe dois itens exclusivos para admins: **Painel Admin** e **Avatares**.
 
 ### Aba 1 — Importar Jogos
 
@@ -365,3 +389,12 @@ Clique em **Confirmar e sincronizar** para aplicar apenas as mudanças necessár
 - Lista jogos com status `closed` ou `live`
 - Insira o placar final e clique em **Salvar**
 - Pontos de todos os palpites são recalculados automaticamente
+
+### Avatares — `/admin/avatares`
+Gerenciamento do catálogo de avatares disponíveis para os usuários:
+
+- **Cadastrar** novo avatar com nome, categoria opcional e imagem (URL externa ou upload direto)
+- **Editar** nome, categoria e status de qualquer avatar
+- **Ativar / Desativar** avatar (soft delete — inativo fica invisível para usuários)
+- **Excluir definitivamente** (hard delete — remove o registro permanentemente)
+- Imagens enviadas são armazenadas no bucket público `avatars` do Supabase Storage

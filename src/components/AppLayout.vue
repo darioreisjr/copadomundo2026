@@ -80,6 +80,17 @@
               />
             </template>
           </v-tooltip>
+          <v-tooltip :text="isRail ? 'Avatares' : ''" location="end">
+            <template #activator="{ props }">
+              <v-list-item
+                v-bind="props"
+                prepend-icon="mdi-account-circle"
+                title="Avatares"
+                :to="{ name: 'AdminAvatars' }"
+                rounded="lg"
+              />
+            </template>
+          </v-tooltip>
         </v-list>
       </template>
 

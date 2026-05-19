@@ -15,7 +15,8 @@ const routes = [
   { path: '/games/:id/bet', name: 'Bet', component: () => import('@/pages/BetPage.vue') },
   { path: '/ranking',   name: 'Ranking',  component: () => import('@/pages/RankingPage.vue') },
   { path: '/minha-conta', name: 'Account', component: () => import('@/pages/AccountPage.vue') },
-  { path: '/admin',     name: 'Admin',    component: () => import('@/pages/AdminPage.vue'),    meta: { adminOnly: true } },
+  { path: '/admin',          name: 'Admin',        component: () => import('@/pages/AdminPage.vue'),        meta: { adminOnly: true } },
+  { path: '/admin/avatares', name: 'AdminAvatars', component: () => import('@/pages/AdminAvatarsPage.vue'), meta: { adminOnly: true } },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/pages/NotFoundPage.vue'), meta: { public: true } },
 ]
 
