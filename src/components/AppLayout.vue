@@ -113,15 +113,22 @@
       </template>
     </v-navigation-drawer>
 
-    <template v-if="!isPublic && auth.user">
+    <v-app-bar
+      v-if="!isPublic && auth.user"
+      color="white"
+      elevation="1"
+      height="64"
+    >
+      <v-spacer />
       <v-btn
         :icon="rightDrawer ? 'mdi-close' : 'mdi-menu'"
-        color="green-darken-4"
-        style="position:fixed;top:12px;right:12px;z-index:1100;"
         elevation="2"
+        style="background-color:#1b5e20;color:#fff;margin-top:4px;margin-bottom:4px;margin-right:16px;"
         @click="rightDrawer = !rightDrawer"
       />
+    </v-app-bar>
 
+    <template v-if="!isPublic && auth.user">
       <v-navigation-drawer
         v-model="rightDrawer"
         location="right"
