@@ -1,36 +1,29 @@
 <template>
   <AppLayout>
-    <div class="text-h5 font-weight-bold mb-6">
-      Olá, {{ auth.profile?.name }} 👋
-    </div>
+<!-- Profile card -->
+    <v-card class="mb-6 pa-4" rounded="lg" color="green-darken-4" theme="dark">
+      <div class="d-flex align-center">
+        <v-avatar color="green-darken-1" size="56" class="mr-4">
+          <span class="text-white font-weight-bold text-h6">
+            {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
+          </span>
+        </v-avatar>
+        <div class="text-subtitle-1 font-weight-bold">{{ auth.profile?.name }}</div>
 
-    <!-- Stats cards -->
-    <v-row class="mb-6">
-      <v-col cols="6" sm="3">
-        <v-card class="pa-4 text-center" color="green-darken-3" theme="dark">
-          <div class="text-h4 font-weight-bold">{{ rankEntry?.total_points ?? 0 }}</div>
-          <div class="text-caption">Pontos</div>
-        </v-card>
-      </v-col>
-      <v-col cols="6" sm="3">
-        <v-card class="pa-4 text-center" color="amber-darken-2" theme="dark">
-          <div class="text-h4 font-weight-bold">#{{ userPosition }}</div>
-          <div class="text-caption">Posição no ranking</div>
-        </v-card>
-      </v-col>
-      <v-col cols="6" sm="3">
-        <v-card class="pa-4 text-center" color="blue-darken-2" theme="dark">
-          <div class="text-h4 font-weight-bold">{{ rankEntry?.exact_hits ?? 0 }}</div>
-          <div class="text-caption">Placares exatos</div>
-        </v-card>
-      </v-col>
-      <v-col cols="6" sm="3">
-        <v-card class="pa-4 text-center" color="purple-darken-2" theme="dark">
-          <div class="text-h4 font-weight-bold">{{ rankEntry?.total_bets ?? 0 }}</div>
-          <div class="text-caption">Palpites feitos</div>
-        </v-card>
-      </v-col>
-    </v-row>
+        <v-spacer />
+        <v-divider vertical class="mx-4" style="height:40px" />
+
+        <div class="text-center mx-3">
+          <div class="text-h6 font-weight-bold text-amber-lighten-2">{{ rankEntry?.total_points ?? 0 }}</div>
+          <div class="text-caption" style="opacity:.75">Pontos</div>
+        </div>
+        <div class="text-center mx-3">
+          <div class="text-h6 font-weight-bold text-amber-lighten-2">#{{ userPosition }}</div>
+          <div class="text-caption" style="opacity:.75">Ranking</div>
+        </div>
+      </div>
+    </v-card>
+
 
     <!-- Estado vazio global: nenhum jogo cadastrado -->
     <div

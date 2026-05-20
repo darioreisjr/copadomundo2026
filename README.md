@@ -71,7 +71,7 @@ O painel administrativo oferece:
 - Transições animadas entre páginas (fade + translate)
 - Página "Como usar" com duas abas: guia de login e guia completo de criação de conta
 - Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
-- Dashboard pessoal com pontuação, posição no ranking, acertos exatos e total de palpites
+- Dashboard pessoal com card de perfil (avatar com inicial, nome, pontos e posição no ranking), jogos abertos para palpite, próximos jogos e últimos resultados
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo (criação e edição enquanto a aposta está aberta)
 - Ranking global com medalhas para o top 3
