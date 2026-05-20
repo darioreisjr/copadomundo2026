@@ -137,8 +137,15 @@
         width="220"
       >
         <div class="d-flex flex-column align-center py-6 px-4">
-          <v-avatar color="green-darken-1" size="64" class="mb-3">
-            <span class="text-white font-weight-bold text-h6">
+          <v-avatar
+            color="green-darken-1"
+            size="64"
+            class="mb-3"
+            style="cursor:pointer"
+            @click="openAvatarPicker"
+          >
+            <v-img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" cover />
+            <span v-else class="text-white font-weight-bold text-h6">
               {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
             </span>
           </v-avatar>
@@ -260,7 +267,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, inject, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useRouter } from 'vue-router'
@@ -273,6 +280,8 @@ const { fluid, isPublic } = defineProps({
 const auth = useAuthStore()
 const toast = useToastStore()
 const router = useRouter()
+
+const openAvatarPicker = inject('openAvatarPicker', () => {})
 
 const rightDrawer = ref(false)
 

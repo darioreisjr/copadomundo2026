@@ -24,14 +24,33 @@
       <v-window-item value="profile">
         <v-card class="pa-6" rounded="lg" elevation="1">
           <div class="d-flex align-center mb-6" style="gap:20px">
-            <v-avatar color="green-darken-1" size="72">
-              <span class="text-white font-weight-bold text-h5">
-                {{ (profileForm.name || 'U')[0].toUpperCase() }}
-              </span>
-            </v-avatar>
+            <div style="position:relative">
+              <v-avatar
+                color="green-darken-1"
+                size="72"
+                style="cursor:pointer"
+                @click="openAvatarPicker()"
+              >
+                <v-img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" cover />
+                <span v-else class="text-white font-weight-bold text-h5">
+                  {{ (profileForm.name || 'U')[0].toUpperCase() }}
+                </span>
+              </v-avatar>
+              <v-btn
+                icon="mdi-camera"
+                size="x-small"
+                color="green-darken-3"
+                style="position:absolute;bottom:0;right:0"
+                elevation="2"
+                @click="openAvatarPicker()"
+              />
+            </div>
             <div>
               <div class="text-body-1 font-weight-medium">{{ auth.profile?.name }}</div>
               <div class="text-caption text-medium-emphasis">{{ auth.user?.email }}</div>
+              <div class="text-caption text-medium-emphasis mt-1" style="cursor:pointer;color:#2e7d32" @click="openAvatarPicker()">
+                Alterar avatar
+              </div>
               <v-chip
                 v-if="auth.profile?.role === 'admin'"
                 size="x-small"
@@ -308,12 +327,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { supabase } from '@/lib/supabase'
+
+const openAvatarPicker = inject('openAvatarPicker', () => {})
 
 const auth = useAuthStore()
 const toast = useToastStore()

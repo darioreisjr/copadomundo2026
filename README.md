@@ -71,12 +71,12 @@ O painel administrativo oferece:
 - Transições animadas entre páginas (fade + translate)
 - Página "Como usar" com duas abas: guia de login e guia completo de criação de conta
 - Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
-- Dashboard pessoal com card de perfil (avatar com inicial, nome, pontos e posição no ranking), jogos abertos para palpite, próximos jogos e últimos resultados
+- Dashboard pessoal com card de perfil (avatar escolhido pelo usuário ou inicial do nome, pontos e posição no ranking), jogos abertos para palpite, próximos jogos e últimos resultados
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo (criação e edição enquanto a aposta está aberta)
 - Ranking global com medalhas para o top 3
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
-  - **Dados Pessoais:** editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone; e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
+  - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone; e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
   - **Segurança:** campo senha atual obrigatório + nova senha + confirmação; botão habilitado somente quando todos os requisitos estão satisfeitos; redireciona para o Dashboard com toast de confirmação após troca bem-sucedida
   - **Preferências:** toggles de notificações por e-mail e por ranking com salvamento automático ao alternar
   - **Excluir Conta:** zona de perigo com checkbox de confirmação + diálogo de confirmação final; exclusão em cascata via RPC SQL
@@ -107,7 +107,7 @@ copa-do-mundo/
 │   └── icons.svg
 └── src/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
-    ├── App.vue                 # Root component com transição page-fade entre rotas
+    ├── App.vue                 # Root component com transição page-fade entre rotas e provide do seletor de avatar
     ├── router/
     │   └── index.js            # 16 rotas com guards de autenticação e papel
     ├── stores/
@@ -163,7 +163,7 @@ Extensão de `auth.users`. Criada automaticamente via trigger no signup.
 | role | text | `'user'` \| `'admin'` |
 | birth_date | date | Data de nascimento (opcional, validação de maioridade ≥ 18 anos) |
 | phone | text | Telefone (opcional) |
-| avatar_url | text | URL do avatar (reservado para uso futuro) |
+| avatar_url | text | URL do avatar escolhido pelo usuário (selecionado via catálogo de avatares) |
 | notifications_email | boolean | Preferência de notificações por e-mail (padrão: true) |
 | notifications_ranking | boolean | Preferência de notificações de ranking (padrão: true) |
 | created_at | timestamptz | — |

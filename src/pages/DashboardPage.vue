@@ -3,8 +3,15 @@
 <!-- Profile card -->
     <v-card class="mb-6 pa-4" rounded="lg" color="green-darken-4" theme="dark">
       <div class="d-flex align-center">
-        <v-avatar color="green-darken-1" size="56" class="mr-4">
-          <span class="text-white font-weight-bold text-h6">
+        <v-avatar
+          color="green-darken-1"
+          size="56"
+          class="mr-4"
+          style="cursor:pointer"
+          @click="openAvatarPicker()"
+        >
+          <v-img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" cover />
+          <span v-else class="text-white font-weight-bold text-h6">
             {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
           </span>
         </v-avatar>
@@ -84,13 +91,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, inject, onMounted } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import GameCard from '@/components/GameCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useGamesStore } from '@/stores/games'
 import { useBetsStore } from '@/stores/bets'
 import { useRankingStore } from '@/stores/ranking'
+
+const openAvatarPicker = inject('openAvatarPicker', () => {})
 
 const auth = useAuthStore()
 const gamesStore = useGamesStore()
