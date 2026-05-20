@@ -2,26 +2,17 @@
   <v-app>
     <v-navigation-drawer
       v-if="!isPublic && auth.user"
-      v-model:rail="isRail"
       permanent
       color="green-darken-4"
       width="220"
     >
       <template #prepend>
-        <div style="position:relative;" class="d-flex flex-column align-center py-4 px-2">
-          <v-btn
-            :icon="isRail ? 'mdi-chevron-right' : 'mdi-chevron-left'"
-            variant="text"
-            size="x-small"
-            color="white"
-            style="position:absolute;top:4px;right:4px;"
-            @click="toggleRail"
-          />
+        <div class="d-flex flex-column align-center py-4 px-2">
           <router-link :to="{ name: 'Home' }" style="text-decoration:none" class="mt-4">
             <img
               src="@/image/logo.png"
               alt="Bolão Copa 26"
-              :style="isRail ? 'height:28px;width:auto' : 'height:48px;width:auto'"
+              style="height:48px;width:auto"
             />
           </router-link>
         </div>
@@ -30,87 +21,45 @@
       <v-divider />
 
       <v-list density="compact" nav class="mt-1">
-        <v-tooltip :text="isRail ? 'Dashboard' : ''" location="end">
-          <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              prepend-icon="mdi-view-dashboard"
-              title="Dashboard"
-              :to="{ name: 'Dashboard' }"
-              rounded="lg"
-            />
-          </template>
-        </v-tooltip>
-        <v-tooltip :text="isRail ? 'Jogos' : ''" location="end">
-          <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              prepend-icon="mdi-soccer"
-              title="Jogos"
-              :to="{ name: 'Games' }"
-              rounded="lg"
-            />
-          </template>
-        </v-tooltip>
-        <v-tooltip :text="isRail ? 'Ranking' : ''" location="end">
-          <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              prepend-icon="mdi-podium"
-              title="Ranking"
-              :to="{ name: 'Ranking' }"
-              rounded="lg"
-            />
-          </template>
-        </v-tooltip>
+        <v-list-item
+          prepend-icon="mdi-view-dashboard"
+          title="Dashboard"
+          :to="{ name: 'Dashboard' }"
+          rounded="lg"
+        />
+        <v-list-item
+          prepend-icon="mdi-soccer"
+          title="Jogos"
+          :to="{ name: 'Games' }"
+          rounded="lg"
+        />
+        <v-list-item
+          prepend-icon="mdi-podium"
+          title="Ranking"
+          :to="{ name: 'Ranking' }"
+          rounded="lg"
+        />
       </v-list>
 
       <template v-if="auth.profile?.role === 'admin'">
         <v-divider />
-        <p v-if="!isRail" class="text-caption px-4 pt-3 pb-1" style="opacity:.6;letter-spacing:.08em">ADMIN</p>
+        <p class="text-caption px-4 pt-3 pb-1" style="opacity:.6;letter-spacing:.08em">ADMIN</p>
         <v-list density="compact" nav>
-          <v-tooltip :text="isRail ? 'Painel Admin' : ''" location="end">
-            <template #activator="{ props }">
-              <v-list-item
-                v-bind="props"
-                prepend-icon="mdi-shield-crown"
-                title="Painel Admin"
-                :to="{ name: 'Admin' }"
-                rounded="lg"
-              />
-            </template>
-          </v-tooltip>
-          <v-tooltip :text="isRail ? 'Avatares' : ''" location="end">
-            <template #activator="{ props }">
-              <v-list-item
-                v-bind="props"
-                prepend-icon="mdi-account-circle"
-                title="Avatares"
-                :to="{ name: 'AdminAvatars' }"
-                rounded="lg"
-              />
-            </template>
-          </v-tooltip>
+          <v-list-item
+            prepend-icon="mdi-shield-crown"
+            title="Painel Admin"
+            :to="{ name: 'Admin' }"
+            rounded="lg"
+          />
+          <v-list-item
+            prepend-icon="mdi-account-circle"
+            title="Avatares"
+            :to="{ name: 'AdminAvatars' }"
+            rounded="lg"
+          />
         </v-list>
       </template>
 
-      <template #append>
-        <v-divider />
-        <v-list density="compact" nav class="py-2">
-          <v-tooltip :text="isRail ? 'Sair' : ''" location="end">
-            <template #activator="{ props }">
-              <v-list-item
-                v-bind="props"
-                prepend-icon="mdi-logout"
-                title="Sair"
-                rounded="lg"
-                base-color="white"
-                @click="handleLogout"
-              />
-            </template>
-          </v-tooltip>
-        </v-list>
-      </template>
     </v-navigation-drawer>
 
     <v-app-bar
@@ -179,6 +128,19 @@
             @click="rightDrawer = false"
           />
         </v-list>
+
+        <template #append>
+          <v-divider />
+          <v-list density="compact" nav class="py-2">
+            <v-list-item
+              prepend-icon="mdi-logout"
+              title="Sair"
+              rounded="lg"
+              base-color="white"
+              @click="handleLogout"
+            />
+          </v-list>
+        </template>
       </v-navigation-drawer>
     </template>
 
@@ -285,16 +247,6 @@ const openAvatarPicker = inject('openAvatarPicker', () => {})
 
 const rightDrawer = ref(false)
 
-const RAIL_KEY = 'drawer-rail'
-const isRail = ref(localStorage.getItem(RAIL_KEY) === 'true')
-
-function toggleRail() {
-  isRail.value = !isRail.value
-}
-
-watch(isRail, (val) => {
-  localStorage.setItem(RAIL_KEY, String(val))
-})
 
 async function handleLogout() {
   await auth.logout()
