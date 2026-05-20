@@ -36,7 +36,8 @@ create policy "profiles: users read own" on public.profiles
   for select using (auth.uid() = id);
 
 create policy "profiles: users update own" on public.profiles
-  for update using (auth.uid() = id);
+  for update using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 create policy "profiles: service insert" on public.profiles
   for insert with check (true);

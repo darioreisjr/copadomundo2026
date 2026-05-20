@@ -438,6 +438,7 @@ async function savePrefs() {
     })
     toast.notify('Preferências salvas!')
   } catch (e) {
+    console.error('savePrefs error:', e)
     toast.notify(e.message || 'Erro ao salvar preferências.', 'error')
   } finally {
     prefsLoading.value = false
