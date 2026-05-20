@@ -410,11 +410,11 @@ async function savePassword() {
     })
     if (authError) {
       toast.notify('Senha atual incorreta', 'error')
-      return
+    } else {
+      await auth.updatePassword(passwordForm.password)
+      toast.notify('Senha alterada com sucesso!')
+      router.push({ name: 'Dashboard' })
     }
-    await auth.updatePassword(passwordForm.password)
-    toast.notify('Senha alterada com sucesso!')
-    passwordFormRef.value.reset()
   } catch (e) {
     toast.notify(e.message || 'Erro ao alterar senha.', 'error')
   } finally {

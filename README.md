@@ -77,7 +77,7 @@ O painel administrativo oferece:
 - Ranking global com medalhas para o top 3
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
   - **Dados Pessoais:** editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone; e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
-  - **Segurança:** campo senha atual obrigatório + nova senha + confirmação; botão habilitado somente quando todos os requisitos estão satisfeitos; campos limpos automaticamente após troca bem-sucedida
+  - **Segurança:** campo senha atual obrigatório + nova senha + confirmação; botão habilitado somente quando todos os requisitos estão satisfeitos; redireciona para o Dashboard com toast de confirmação após troca bem-sucedida
   - **Preferências:** toggles de notificações por e-mail e por ranking com salvamento automático ao alternar
   - **Excluir Conta:** zona de perigo com checkbox de confirmação + diálogo de confirmação final; exclusão em cascata via RPC SQL
 

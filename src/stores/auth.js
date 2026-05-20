@@ -7,6 +7,7 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref(null)
   const initialized = ref(false)
   const intentionalLogout = ref(false)
+  const passwordUpdateInProgress = ref(false)
 
   async function init() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -15,8 +16,8 @@ export const useAuthStore = defineStore('auth', () => {
     initialized.value = true
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (passwordUpdateInProgress.value) return
       if (!session && !intentionalLogout.value) {
-        // Sessão foi renovada (ex: troca de senha) — tenta recuperar silenciosamente
         const { data } = await supabase.auth.getSession()
         if (data.session) {
           user.value = data.session.user
@@ -91,8 +92,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function updatePassword(newPassword) {
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    if (error) throw error
+    passwordUpdateInProgress.value = true
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+    } finally {
+      passwordUpdateInProgress.value = false
+    }
   }
 
   async function deleteAccount() {
