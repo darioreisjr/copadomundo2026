@@ -156,7 +156,7 @@
           </v-btn-toggle>
 
           <!-- URL input -->
-          <div v-show="avatarImageMode === 'url'">
+          <div v-if="avatarImageMode === 'url'">
             <v-text-field
               v-model="avatarForm.url"
               label="URL da imagem"
@@ -174,14 +174,14 @@
           </div>
 
           <!-- Upload -->
-          <div v-show="avatarImageMode === 'upload'">
+          <div v-if="avatarImageMode === 'upload'">
             <v-file-input
               v-model="avatarFileInput"
               label="Selecionar imagem"
               prepend-icon=""
               prepend-inner-icon="mdi-image-plus"
               accept="image/*"
-              :rules="avatarImageMode === 'upload' ? [v => !!v || 'Selecione um arquivo'] : []"
+              :rules="[v => (Array.isArray(v) ? v.length > 0 : !!v) || 'Selecione um arquivo']"
               hint="PNG, JPG, WEBP. Máx 2 MB."
               persistent-hint
               @update:model-value="previewFile"
@@ -232,18 +232,18 @@
         <p class="text-caption text-medium-emphasis mb-6">
           Para exclusão permanente, use o botão abaixo.
         </p>
-        <div class="d-flex justify-space-between align-center">
+        <div class="d-flex flex-column ga-3">
           <v-btn
-            variant="text"
+            variant="outlined"
             color="error"
-            size="small"
             prepend-icon="mdi-delete-forever"
             :loading="deletingAvatar"
+            block
             @click="hardDelete"
           >
             Excluir definitivamente
           </v-btn>
-          <div class="d-flex ga-2">
+          <div class="d-flex justify-end ga-2">
             <v-btn variant="text" :disabled="deletingAvatar" @click="deleteAvatarDialog = false">
               Cancelar
             </v-btn>
