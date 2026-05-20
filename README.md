@@ -63,7 +63,8 @@ O painel administrativo oferece:
 - Requisitos de senha fortes: mínimo 8 caracteres, letra maiúscula, minúscula e número, com indicador visual em tempo real
 - Botão "Criar conta" habilitado somente quando todos os requisitos de senha, e-mail válido e aceite dos termos estão ok
 - Bloqueio de e-mail duplicado: botão desabilitado após erro de e-mail já cadastrado até o usuário trocar o endereço
-- Tratamento de e-mail no limbo: quando o e-mail já foi cadastrado mas nunca confirmado, exibe banner de aviso com botão para reenviar o link de confirmação sem precisar criar uma nova conta
+- Tratamento de e-mail no limbo no cadastro: quando o e-mail já foi cadastrado mas nunca confirmado, exibe banner de aviso com botão para reenviar o link de confirmação sem precisar criar uma nova conta
+- Tratamento de e-mail no limbo no login: quando o usuário tenta entrar com credenciais corretas mas o e-mail ainda não foi confirmado, é redirecionado automaticamente para a tela `/aguardando-confirmacao` com instruções claras e botão para reenviar o link
 - Aceite obrigatório dos Termos de Uso e Privacidade ao criar conta
 - Página de Termos de Uso e Privacidade com 8 seções completas (LGPD, regras do bolão, privacidade, contato)
 - Página de confirmação de conta com instruções passo a passo para ativar a conta via e-mail, exibida automaticamente após o cadastro bem-sucedido
@@ -131,7 +132,8 @@ copa-do-mundo/
         ├── ResetPasswordPage.vue   # Redefinição de senha com token
         ├── HowToPage.vue           # Guia de uso: abas de login e criação de conta
         ├── TermsPage.vue           # Termos de Uso e Privacidade (8 seções, LGPD)
-        ├── AccountCreatedPage.vue  # Instruções passo a passo de ativação de conta
+        ├── AccountCreatedPage.vue  # Instruções passo a passo de ativação de conta (pós-cadastro)
+        ├── PendingConfirmationPage.vue # Tela de limbo no login: conta cadastrada, e-mail não confirmado
         ├── DashboardPage.vue
         ├── GamesPage.vue
         ├── BetPage.vue
@@ -329,6 +331,7 @@ npm run preview  # Preview do build local
 | `/forgot-password` | ForgotPasswordPage | Público |
 | `/reset-password` | ResetPasswordPage | Público |
 | `/conta-criada` | AccountCreatedPage | Público |
+| `/aguardando-confirmacao` | PendingConfirmationPage | Público |
 | `/dashboard` | DashboardPage | Autenticado |
 | `/games` | GamesPage | Autenticado |
 | `/games/:id/bet` | BetPage | Autenticado |

@@ -210,8 +210,12 @@ async function handleLogin() {
     toast.notify(`Bem-vindo de volta, ${name}!`)
     router.push({ name: 'Dashboard' })
   } catch (e) {
-    errorMsg.value = 'E-mail ou senha inválidos.'
-    error.value = true
+    if (e.code === 'email_not_confirmed') {
+      router.push({ name: 'PendingConfirmation', query: { email: email.value } })
+    } else {
+      errorMsg.value = 'E-mail ou senha inválidos.'
+      error.value = true
+    }
   } finally {
     loading.value = false
   }

@@ -66,7 +66,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login({ email, password }) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
+    if (error) {
+      if (error.message === 'Email not confirmed') {
+        const err = new Error('E-mail cadastrado mas ainda não confirmado.')
+        err.code = 'email_not_confirmed'
+        throw err
+      }
+      throw error
+    }
   }
 
   async function logout() {
