@@ -5,6 +5,12 @@
     </transition>
   </router-view>
 
+  <!-- Dialog global: recompensa de selos -->
+  <SealRewardModal
+    v-model="sealsStore.modalOpen"
+    :reward="sealsStore.pendingReward"
+  />
+
   <!-- Dialog global: seletor de avatar -->
   <v-dialog v-model="avatarPickerOpen" max-width="480" scrollable>
     <v-card>
@@ -62,10 +68,34 @@ import { ref, computed, provide, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAvatarsStore } from '@/stores/avatars'
 import { useToastStore } from '@/stores/toast'
+import { useSealsStore } from '@/stores/seals'
+import SealRewardModal from '@/components/SealRewardModal.vue'
 
 const auth = useAuthStore()
 const avatarsStore = useAvatarsStore()
 const toast = useToastStore()
+const sealsStore = useSealsStore()
+
+let dailyChestTimer = null
+
+function triggerDailyChest() {
+  if (dailyChestTimer) return
+  dailyChestTimer = setTimeout(async () => {
+    dailyChestTimer = null
+    if (!auth.user) return
+    try {
+      const result = await sealsStore.claimDailyChest()
+      if (result?.granted) {
+        if (auth.profile) auth.profile.total_seals = (auth.profile.total_seals ?? 0) + result.seals
+        sealsStore.showReward(result)
+      }
+    } catch {
+      // silencia erro de rede sem incomodar o usuário
+    }
+  }, 20000)
+}
+
+provide('triggerDailyChest', triggerDailyChest)
 
 const avatarPickerOpen = ref(false)
 const pickerSelected = ref('')

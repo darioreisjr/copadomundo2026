@@ -28,6 +28,14 @@
           <div class="text-h6 font-weight-bold text-amber-lighten-2">#{{ userPosition }}</div>
           <div class="text-caption" style="opacity:.75">Ranking</div>
         </div>
+        <v-divider vertical class="mx-2" style="height:40px" />
+        <div class="text-center mx-3">
+          <div class="text-h6 font-weight-bold text-amber-lighten-2 d-flex align-center justify-center">
+            <v-icon icon="mdi-seal" size="18" class="mr-1" />
+            {{ auth.profile?.total_seals ?? 0 }}
+          </div>
+          <div class="text-caption" style="opacity:.75">Selos</div>
+        </div>
       </div>
     </v-card>
 
@@ -92,6 +100,7 @@
 
 <script setup>
 import { computed, inject, onMounted } from 'vue'
+
 import AppLayout from '@/components/AppLayout.vue'
 import GameCard from '@/components/GameCard.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -100,6 +109,7 @@ import { useBetsStore } from '@/stores/bets'
 import { useRankingStore } from '@/stores/ranking'
 
 const openAvatarPicker = inject('openAvatarPicker', () => {})
+const triggerDailyChest = inject('triggerDailyChest', () => {})
 
 const auth = useAuthStore()
 const gamesStore = useGamesStore()
@@ -131,5 +141,6 @@ onMounted(async () => {
     betsStore.fetchMyBets(),
     rankingStore.fetchRanking(),
   ])
+  triggerDailyChest()
 })
 </script>

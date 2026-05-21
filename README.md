@@ -71,7 +71,7 @@ O painel administrativo oferece:
 - Transições animadas entre páginas (fade + translate)
 - Página "Como usar" com duas abas: guia de login e guia completo de criação de conta
 - Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
-- Dashboard pessoal com card de perfil (avatar escolhido pelo usuário ou inicial do nome, pontos e posição no ranking), jogos abertos para palpite, próximos jogos e últimos resultados
+- Dashboard pessoal com card de perfil (avatar escolhido pelo usuário ou inicial do nome, pontos, posição no ranking e total de selos), jogos abertos para palpite, próximos jogos e últimos resultados
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo (criação e edição enquanto a aposta está aberta)
 - Ranking global com medalhas para o top 3
@@ -103,13 +103,14 @@ copa-do-mundo/
 ├── supabase/
 │   ├── schema.sql              # Schema principal: tabelas, funções, triggers, RLS
 │   ├── avatars-schema.sql      # Schema isolado: tabela avatars, RLS, bucket de storage
-│   └── coins-schema.sql        # Schema de selos: tabela seal_rewards, RLS e seed de eventos
+│   ├── coins-schema.sql        # Schema de selos: tabela seal_rewards, RLS e seed de eventos
+│   └── seals-awards-schema.sql # Schema de distribuição: tabela user_seals, coluna total_seals, RPCs de concessão
 ├── public/
 │   ├── favicon.svg
 │   └── icons.svg
 └── src/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
-    ├── App.vue                 # Root component com transição page-fade entre rotas e provide do seletor de avatar
+    ├── App.vue                 # Root component com transição page-fade, provide do seletor de avatar e modal global de selos
     ├── router/
     │   └── index.js            # 16 rotas com guards de autenticação e papel
     ├── stores/
@@ -119,6 +120,7 @@ copa-do-mundo/
     │   ├── bets.js             # Palpites do usuário autenticado
     │   ├── ranking.js          # Leaderboard global
     │   ├── sealRewards.js      # CRUD dos eventos de selos (somente admin)
+    │   ├── seals.js            # Concessão de selos ao usuário: baú diário, estado do modal
     │   └── toast.js            # Notificações globais (snackbar)
     ├── lib/
     │   ├── supabase.js         # Cliente Supabase
@@ -126,7 +128,8 @@ copa-do-mundo/
     │   └── gemini.js           # Tradução de nomes e emojis de bandeiras via Gemini
     ├── components/
     │   ├── AppLayout.vue       # Navbar + footer com links dinâmicos por papel e toast global
-    │   └── GameCard.vue        # Card reutilizável de jogo com palpite e pontos
+    │   ├── GameCard.vue        # Card reutilizável de jogo com palpite e pontos
+    │   └── SealRewardModal.vue # Modal animado de recompensa de selos (baú diário e outros eventos)
     └── pages/
         ├── HomePage.vue
         ├── LoginPage.vue        # Layout split-screen redesenhado
@@ -153,8 +156,9 @@ copa-do-mundo/
 ## Banco de Dados
 
 Schema principal em [supabase/schema.sql](supabase/schema.sql).
-Schema de avatares em [supabase/avatars-schema.sql](supabase/avatars-schema.sql) — aplicar separadamente, após o schema principal.
-Schema de selos em [supabase/coins-schema.sql](supabase/coins-schema.sql) — aplicar separadamente, após o schema principal.
+Schema de avatares em [supabase/avatars-schema.sql](supabase/avatars-schema.sql) — aplicar após o schema principal.
+Schema de eventos de selos em [supabase/coins-schema.sql](supabase/coins-schema.sql) — aplicar após o schema principal.
+Schema de distribuição de selos em [supabase/seals-awards-schema.sql](supabase/seals-awards-schema.sql) — aplicar após coins-schema.sql.
 
 ### Tabelas
 
@@ -169,6 +173,7 @@ Extensão de `auth.users`. Criada automaticamente via trigger no signup.
 | birth_date | date | Data de nascimento (opcional, validação de maioridade ≥ 18 anos) |
 | phone | text | Telefone (opcional) |
 | avatar_url | text | URL do avatar escolhido pelo usuário (selecionado via catálogo de avatares) |
+| total_seals | int | Total acumulado de selos do usuário (padrão: 0) |
 | notifications_email | boolean | Preferência de notificações por e-mail (padrão: true) |
 | notifications_ranking | boolean | Preferência de notificações de ranking (padrão: true) |
 | created_at | timestamptz | — |
@@ -247,13 +252,30 @@ Tabela de configuração dos eventos que concedem selos aos jogadores. Gerenciad
 > RLS: usuários autenticados podem ler; apenas admins podem inserir, atualizar e deletar.
 > Eventos iniciais criados via seed: `daily_chest`, `exact_score`, `winner_hit`, `draw_hit`, `bet_sent`, `knockout_bonus`.
 
+#### `user_seals`
+Histórico de selos concedidos a cada usuário. Aplicado via [supabase/seals-awards-schema.sql](supabase/seals-awards-schema.sql).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| id | uuid | PK |
+| user_id | uuid | FK → profiles |
+| event_key | text | Chave do evento (ex: `daily_chest`, `exact_score`) |
+| seals | int | Quantidade de selos concedidos neste evento |
+| game_id | uuid | FK → games (nullable — preenchido para eventos de jogo) |
+| awarded_at | timestamptz | Data/hora da concessão |
+
+> Índice em `(user_id, event_key, awarded_at)` para verificação eficiente do baú diário.
+> RLS: usuários leem apenas seus próprios registros; inserção feita exclusivamente por RPCs `security definer`.
+
 ### Funções SQL principais
 
 | Função | Descrição |
 |---|---|
 | `calculate_hit_type(...)` | Compara palpite vs resultado, retorna tipo de acerto |
 | `points_for_hit(hit)` | Converte tipo de acerto em pontos |
-| `recalculate_game_bets(game_id)` | Calcula pontos de todos os palpites de um jogo e atualiza ranking |
+| `recalculate_game_bets(game_id)` | Calcula pontos de todos os palpites de um jogo, atualiza ranking e distribui selos |
+| `award_game_seals(game_id)` | Distribui selos de `bet_sent`, acerto e `knockout_bonus` para cada apostador do jogo |
+| `claim_daily_seal()` | Concede selos do baú diário ao usuário autenticado (idempotente por dia) |
 | `handle_new_user()` | Trigger: cria perfil automaticamente no signup |
 | `set_bet_window()` | Trigger: define janela de apostas ao criar/atualizar jogo |
 | `delete_user()` | RPC com SECURITY DEFINER: exclui o usuário autenticado de `auth.users` (cascade apaga profiles, bets e ranking) |
@@ -296,9 +318,11 @@ cp .env.example .env
 
 # 4. Aplique os schemas no Supabase
 # Acesse seu projeto Supabase → SQL Editor
-# Execute primeiro:  supabase/schema.sql
-# Execute depois:    supabase/avatars-schema.sql
-# Execute por fim:   supabase/coins-schema.sql
+# Execute na ordem:
+# 1. supabase/schema.sql
+# 2. supabase/avatars-schema.sql
+# 3. supabase/coins-schema.sql
+# 4. supabase/seals-awards-schema.sql
 
 # 5. Adicione a constraint de unicidade (se o banco já existia)
 # Execute no SQL Editor do Supabase:
@@ -447,3 +471,26 @@ Configuração do sistema de recompensas em **Selos** (⚽) concedidos aos jogad
 | `draw_hit` | Acerto de Empate | 20 |
 | `bet_sent` | Palpite Enviado | 5 |
 | `knockout_bonus` | Bônus Mata-Mata | 30 |
+
+---
+
+## Sistema de Selos — Funcionamento
+
+### Baú Diário
+Ao acessar o dashboard, após 20 segundos a aplicação chama automaticamente a RPC `claim_daily_seal()`. Se o usuário ainda não resgatou o baú no dia atual, um **modal animado** aparece com o ícone do evento, nome, descrição e quantidade de selos ganhos. O contador de selos no card do perfil é atualizado em tempo real, sem necessidade de recarregar a página.
+
+### Selos por resultado de jogo
+Quando o admin lança o resultado de um jogo, a RPC `recalculate_game_bets()` recalcula os pontos de todos os apostadores **e** chama automaticamente `award_game_seals()`, que distribui:
+
+| Evento | Condição |
+|---|---|
+| `bet_sent` | Qualquer apostador do jogo |
+| `exact_score` | Acertou o placar exato |
+| `winner_hit` | Acertou o vencedor (sem ser exato) |
+| `draw_hit` | Acertou o empate (sem ser exato) |
+| `knockout_bonus` | Jogo de fase eliminatória (phase ≠ `group`) |
+
+Cada concessão é idempotente: se a RPC for chamada novamente para o mesmo jogo, não duplica os selos.
+
+### Visualização
+O total acumulado de selos aparece no card de perfil do **Dashboard** ao lado da posição no ranking, atualizado em tempo real após qualquer concessão.
