@@ -88,6 +88,7 @@ O painel administrativo oferece:
 - CRUD de jogos (times, flags, data, fase, grupo, status)
 - Lançamento de resultados e recálculo automático de pontos via RPC SQL
 - Gerenciamento de avatares: cadastro, edição, ativação/desativação e exclusão de avatares disponíveis para os usuários escolherem em seus perfis
+- **Selos da Copa**: configuração dos eventos que concedem selos aos jogadores (baú diário, acerto de placar, acerto de vencedor, empate, palpite enviado, bônus mata-mata)
 
 ---
 
@@ -101,7 +102,8 @@ copa-do-mundo/
 ├── .env.example
 ├── supabase/
 │   ├── schema.sql              # Schema principal: tabelas, funções, triggers, RLS
-│   └── avatars-schema.sql      # Schema isolado: tabela avatars, RLS, bucket de storage
+│   ├── avatars-schema.sql      # Schema isolado: tabela avatars, RLS, bucket de storage
+│   └── coins-schema.sql        # Schema de selos: tabela seal_rewards, RLS e seed de eventos
 ├── public/
 │   ├── favicon.svg
 │   └── icons.svg
@@ -116,6 +118,7 @@ copa-do-mundo/
     │   ├── games.js            # CRUD de jogos, lançamento de resultados
     │   ├── bets.js             # Palpites do usuário autenticado
     │   ├── ranking.js          # Leaderboard global
+    │   ├── sealRewards.js      # CRUD dos eventos de selos (somente admin)
     │   └── toast.js            # Notificações globais (snackbar)
     ├── lib/
     │   ├── supabase.js         # Cliente Supabase
@@ -141,6 +144,7 @@ copa-do-mundo/
         ├── AccountPage.vue         # Minha Conta: dados pessoais, segurança, preferências, exclusão
         ├── AdminPage.vue
         ├── AdminAvatarsPage.vue    # Gerenciamento de avatares (somente admin)
+        ├── AdminSealsPage.vue      # Configuração de selos por evento (somente admin)
         └── NotFoundPage.vue        # 404 animado com bola de futebol
 ```
 
@@ -150,6 +154,7 @@ copa-do-mundo/
 
 Schema principal em [supabase/schema.sql](supabase/schema.sql).
 Schema de avatares em [supabase/avatars-schema.sql](supabase/avatars-schema.sql) — aplicar separadamente, após o schema principal.
+Schema de selos em [supabase/coins-schema.sql](supabase/coins-schema.sql) — aplicar separadamente, após o schema principal.
 
 ### Tabelas
 
@@ -225,6 +230,23 @@ Catálogo de avatares disponíveis para os usuários escolherem em seus perfis. 
 > RLS: usuários autenticados veem apenas avatares com `active = true`; admins veem todos.
 > Storage: bucket público `avatars` no Supabase Storage armazena as imagens enviadas via upload.
 
+#### `seal_rewards`
+Tabela de configuração dos eventos que concedem selos aos jogadores. Gerenciada pelo admin via `/admin/selos`.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| id | uuid | PK |
+| event_key | text | Chave única do evento (ex: `daily_chest`, `exact_score`) |
+| label | text | Nome de exibição (ex: "Baú Diário") |
+| description | text | Descrição curta do evento (opcional) |
+| seals | int | Quantidade de selos concedidos (≥ 0) |
+| icon | text | Ícone MDI (ex: `mdi-treasure-chest`) |
+| active | boolean | Se o evento está ativo (padrão: true) |
+| created_at | timestamptz | — |
+
+> RLS: usuários autenticados podem ler; apenas admins podem inserir, atualizar e deletar.
+> Eventos iniciais criados via seed: `daily_chest`, `exact_score`, `winner_hit`, `draw_hit`, `bet_sent`, `knockout_bonus`.
+
 ### Funções SQL principais
 
 | Função | Descrição |
@@ -274,8 +296,9 @@ cp .env.example .env
 
 # 4. Aplique os schemas no Supabase
 # Acesse seu projeto Supabase → SQL Editor
-# Execute primeiro: supabase/schema.sql
-# Execute depois: supabase/avatars-schema.sql
+# Execute primeiro:  supabase/schema.sql
+# Execute depois:    supabase/avatars-schema.sql
+# Execute por fim:   supabase/coins-schema.sql
 
 # 5. Adicione a constraint de unicidade (se o banco já existia)
 # Execute no SQL Editor do Supabase:
@@ -339,6 +362,7 @@ npm run preview  # Preview do build local
 | `/minha-conta` | AccountPage | Autenticado |
 | `/admin` | AdminPage | Admin apenas |
 | `/admin/avatares` | AdminAvatarsPage | Admin apenas |
+| `/admin/selos` | AdminSealsPage | Admin apenas |
 | `/:pathMatch(.*)*` | NotFoundPage | Público (404) |
 
 ---
@@ -357,6 +381,7 @@ npm run preview  # Preview do build local
 | Acessar painel admin | ❌ | ✅ |
 | Ver palpites de outros | ❌ | ✅ |
 | Gerenciar avatares do catálogo | ❌ | ✅ |
+| Configurar selos da copa | ❌ | ✅ |
 
 RLS (Row Level Security) ativado em todas as tabelas. As políticas estão definidas em `supabase/schema.sql` e `supabase/avatars-schema.sql`.
 
@@ -364,7 +389,7 @@ RLS (Row Level Security) ativado em todas as tabelas. As políticas estão defin
 
 ## Painel Admin
 
-Acesse `/admin` com uma conta de role `admin`. O menu lateral exibe dois itens exclusivos para admins: **Painel Admin** e **Avatares**.
+Acesse `/admin` com uma conta de role `admin`. O menu lateral exibe três itens exclusivos para admins: **Painel Admin**, **Avatares** e **Selos da Copa**.
 
 ### Aba 1 — Importar Jogos
 
@@ -401,3 +426,24 @@ Gerenciamento do catálogo de avatares disponíveis para os usuários:
 - **Ativar / Desativar** avatar (soft delete — inativo fica invisível para usuários)
 - **Excluir definitivamente** (hard delete — remove o registro permanentemente)
 - Imagens enviadas são armazenadas no bucket público `avatars` do Supabase Storage
+
+### Selos da Copa — `/admin/selos`
+Configuração do sistema de recompensas em **Selos** (⚽) concedidos aos jogadores por cada tipo de ação:
+
+- **Cards de resumo** no topo: total de tipos de evento, selos por login diário e selos num jogo perfeito
+- **Cadastrar** novo evento com nome, chave (slug único), descrição, quantidade de selos e ícone MDI
+- **Editar** configurações de qualquer evento (a chave não pode ser alterada após criação)
+- **Ativar / Desativar** evento — eventos inativos não concedem selos
+- **Excluir** evento permanentemente
+- Pré-visualização do ícone em tempo real durante criação/edição
+
+**Eventos pré-cadastrados via seed:**
+
+| Chave | Evento | Selos padrão |
+|---|---|---|
+| `daily_chest` | Baú Diário | 10 |
+| `exact_score` | Acerto Exato do Placar | 50 |
+| `winner_hit` | Acerto do Vencedor | 20 |
+| `draw_hit` | Acerto de Empate | 20 |
+| `bet_sent` | Palpite Enviado | 5 |
+| `knockout_bonus` | Bônus Mata-Mata | 30 |

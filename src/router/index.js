@@ -18,6 +18,7 @@ const routes = [
   { path: '/minha-conta', name: 'Account', component: () => import('@/pages/AccountPage.vue') },
   { path: '/admin',          name: 'Admin',        component: () => import('@/pages/AdminPage.vue'),        meta: { adminOnly: true } },
   { path: '/admin/avatares', name: 'AdminAvatars', component: () => import('@/pages/AdminAvatarsPage.vue'), meta: { adminOnly: true } },
+  { path: '/admin/selos',   name: 'AdminSeals',   component: () => import('@/pages/AdminSealsPage.vue'),   meta: { adminOnly: true } },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/pages/NotFoundPage.vue'), meta: { public: true } },
 ]
 

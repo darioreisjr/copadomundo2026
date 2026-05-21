@@ -57,6 +57,12 @@
             :to="{ name: 'AdminAvatars' }"
             rounded="lg"
           />
+          <v-list-item
+            prepend-icon="mdi-seal"
+            title="Selos da Copa"
+            :to="{ name: 'AdminSeals' }"
+            rounded="lg"
+          />
         </v-list>
       </template>
 
