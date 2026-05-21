@@ -55,7 +55,9 @@
       <p class="text-caption text-medium-emphasis mb-4">
         {{ avatarsStore.avatars.length }} avatar{{ avatarsStore.avatars.length !== 1 ? 'es' : '' }} cadastrado{{ avatarsStore.avatars.length !== 1 ? 's' : '' }}
       </p>
-      <v-table>
+
+      <!-- Tabela: visível apenas em sm+ -->
+      <v-table class="d-none d-sm-block">
         <thead>
           <tr>
             <th>Imagem</th>
@@ -136,6 +138,92 @@
           </tr>
         </tbody>
       </v-table>
+
+      <!-- Cards: visíveis apenas no mobile -->
+      <div class="d-flex d-sm-none flex-column" style="gap:12px">
+        <v-card
+          v-for="avatar in avatarsStore.avatars"
+          :key="avatar.id"
+          variant="outlined"
+          class="pa-3"
+        >
+          <!-- Linha 1: imagem + nome -->
+          <div class="d-flex align-center mb-2" style="gap:12px">
+            <v-avatar size="44" rounded="md" color="grey-lighten-3">
+              <v-img :src="avatar.url" :alt="avatar.name" cover />
+            </v-avatar>
+            <span class="text-subtitle-2 font-weight-bold">{{ avatar.name }}</span>
+          </div>
+
+          <!-- Linha 2: categoria + selos + padrão -->
+          <div class="d-flex align-center flex-wrap mb-2" style="gap:8px">
+            <span class="text-caption text-medium-emphasis">{{ avatar.category ?? '—' }}</span>
+            <v-chip
+              v-if="avatar.seal_cost > 0"
+              size="x-small"
+              color="amber-darken-2"
+              variant="tonal"
+              prepend-icon="mdi-seal"
+            >
+              {{ avatar.seal_cost }}
+            </v-chip>
+            <span v-else class="text-caption text-medium-emphasis">Grátis</span>
+            <v-chip
+              v-if="avatar.is_default"
+              size="x-small"
+              color="green-darken-3"
+              variant="flat"
+              prepend-icon="mdi-star"
+            >
+              Padrão
+            </v-chip>
+          </div>
+
+          <!-- Linha 3: status -->
+          <div class="mb-2">
+            <v-chip
+              :color="avatar.active ? 'green' : 'grey'"
+              size="x-small"
+              variant="tonal"
+            >
+              {{ avatar.active ? 'Ativo' : 'Inativo' }}
+            </v-chip>
+          </div>
+
+          <!-- Linha 4: ações -->
+          <div class="d-flex" style="gap:8px">
+            <v-btn
+              prepend-icon="mdi-pencil"
+              size="small"
+              variant="tonal"
+              class="flex-1-1"
+              @click="openEditDialog(avatar)"
+            >
+              Editar
+            </v-btn>
+            <v-btn
+              :prepend-icon="avatar.active ? 'mdi-eye-off' : 'mdi-eye'"
+              size="small"
+              variant="tonal"
+              :color="avatar.active ? 'orange' : 'green'"
+              class="flex-1-1"
+              @click="toggleActive(avatar)"
+            >
+              {{ avatar.active ? 'Desativar' : 'Reativar' }}
+            </v-btn>
+            <v-btn
+              prepend-icon="mdi-delete"
+              size="small"
+              variant="tonal"
+              color="red"
+              class="flex-1-1"
+              @click="openDeleteDialog(avatar)"
+            >
+              Excluir
+            </v-btn>
+          </div>
+        </v-card>
+      </div>
     </v-card>
 
     <!-- Dialog Criar / Editar -->

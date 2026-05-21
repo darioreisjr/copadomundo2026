@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <!-- Header -->
-    <div class="d-flex justify-space-between align-center mb-6">
+    <div class="d-flex flex-column flex-sm-row justify-sm-space-between align-sm-center mb-6" style="gap:12px">
       <div>
         <div class="text-h5 font-weight-bold d-flex align-center" style="gap:8px">
           <v-icon icon="mdi-seal" color="amber-darken-2" size="28" />
@@ -15,6 +15,7 @@
         color="green-darken-3"
         prepend-icon="mdi-plus"
         rounded="lg"
+        class="align-self-start align-self-sm-center"
         @click="openNewDialog"
       >
         Novo Evento
@@ -33,7 +34,7 @@
     <v-row v-if="!store.loading && store.rewards.length" class="mb-6">
       <v-col cols="12" sm="4">
         <v-card elevation="1" rounded="lg" class="pa-4">
-          <div class="d-flex align-center" style="gap:12px">
+          <div class="d-flex align-center justify-center justify-sm-start" style="gap:12px">
             <v-avatar color="amber-lighten-4" size="44">
               <v-icon icon="mdi-format-list-bulleted" color="amber-darken-3" />
             </v-avatar>
@@ -46,7 +47,7 @@
       </v-col>
       <v-col cols="12" sm="4">
         <v-card elevation="1" rounded="lg" class="pa-4">
-          <div class="d-flex align-center" style="gap:12px">
+          <div class="d-flex align-center justify-center justify-sm-start" style="gap:12px">
             <v-avatar color="green-lighten-4" size="44">
               <v-icon icon="mdi-treasure-chest" color="green-darken-3" />
             </v-avatar>
@@ -62,7 +63,7 @@
       </v-col>
       <v-col cols="12" sm="4">
         <v-card elevation="1" rounded="lg" class="pa-4">
-          <div class="d-flex align-center" style="gap:12px">
+          <div class="d-flex align-center justify-center justify-sm-start" style="gap:12px">
             <v-avatar color="blue-lighten-4" size="44">
               <v-icon icon="mdi-bullseye-arrow" color="blue-darken-3" />
             </v-avatar>
@@ -113,7 +114,9 @@
       <p class="text-caption text-medium-emphasis mb-4">
         {{ activeCount }} ativo{{ activeCount !== 1 ? 's' : '' }} de {{ store.rewards.length }} evento{{ store.rewards.length !== 1 ? 's' : '' }}
       </p>
-      <v-table>
+
+      <!-- Tabela: visível apenas em sm+ -->
+      <v-table class="d-none d-sm-block">
         <thead>
           <tr>
             <th style="width:56px"></th>
@@ -183,6 +186,75 @@
           </tr>
         </tbody>
       </v-table>
+
+      <!-- Cards: visíveis apenas no mobile -->
+      <div class="d-flex d-sm-none flex-column" style="gap:12px">
+        <v-card
+          v-for="reward in store.rewards"
+          :key="reward.id"
+          variant="outlined"
+          class="pa-3"
+        >
+          <!-- Linha 1: ícone + nome -->
+          <div class="d-flex align-center mb-1" style="gap:10px">
+            <v-avatar size="38" :color="reward.active ? 'amber-lighten-4' : 'grey-lighten-3'" rounded="md">
+              <v-icon :icon="reward.icon || 'mdi-seal'" :color="reward.active ? 'amber-darken-3' : 'grey'" size="22" />
+            </v-avatar>
+            <span class="font-weight-medium">{{ reward.label }}</span>
+          </div>
+
+          <!-- Linha 2: descrição -->
+          <div v-if="reward.description" class="text-caption text-medium-emphasis mb-2 pl-1">
+            {{ reward.description }}
+          </div>
+
+          <!-- Linha 3: selos + status -->
+          <div class="d-flex align-center mb-2" style="gap:12px">
+            <div class="d-flex align-center" style="gap:4px">
+              <span class="text-h6 font-weight-bold" :style="reward.active ? 'color:#f57f17' : 'color:#9e9e9e'">
+                {{ reward.seals }}
+              </span>
+              <v-icon icon="mdi-seal" :color="reward.active ? 'amber-darken-2' : 'grey-lighten-1'" size="16" />
+            </div>
+            <v-chip :color="reward.active ? 'green' : 'grey'" size="x-small" variant="tonal">
+              {{ reward.active ? 'Ativo' : 'Inativo' }}
+            </v-chip>
+          </div>
+
+          <!-- Linha 4: ações -->
+          <div class="d-flex" style="gap:8px">
+            <v-btn
+              prepend-icon="mdi-pencil"
+              size="small"
+              variant="tonal"
+              class="flex-1-1"
+              @click="openEditDialog(reward)"
+            >
+              Editar
+            </v-btn>
+            <v-btn
+              :prepend-icon="reward.active ? 'mdi-eye-off' : 'mdi-eye'"
+              size="small"
+              variant="tonal"
+              :color="reward.active ? 'orange' : 'green'"
+              class="flex-1-1"
+              @click="handleToggleActive(reward)"
+            >
+              {{ reward.active ? 'Desativar' : 'Reativar' }}
+            </v-btn>
+            <v-btn
+              prepend-icon="mdi-delete"
+              size="small"
+              variant="tonal"
+              color="red"
+              class="flex-1-1"
+              @click="openDeleteDialog(reward)"
+            >
+              Excluir
+            </v-btn>
+          </div>
+        </v-card>
+      </div>
     </v-card>
 
     <!-- Dialog Criar / Editar -->

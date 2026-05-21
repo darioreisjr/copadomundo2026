@@ -2,43 +2,47 @@
   <AppLayout>
 <!-- Profile card -->
     <v-card class="mb-6 pa-4" rounded="lg" color="green-darken-4" theme="dark">
-      <div class="d-flex align-center">
-        <v-avatar
-          color="green-darken-1"
-          size="56"
-          class="mr-4"
-          style="cursor:pointer"
-          @click="openAvatarPicker()"
-        >
-          <v-img
-            v-if="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
-            :src="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
-            cover
-          />
-          <span v-else class="text-white font-weight-bold text-h6">
-            {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
-          </span>
-        </v-avatar>
-        <div class="text-subtitle-1 font-weight-bold">{{ auth.profile?.name }}</div>
-
-        <v-spacer />
-        <v-divider vertical class="mx-4" style="height:40px" />
-
-        <div class="text-center mx-3">
-          <div class="text-h6 font-weight-bold text-amber-lighten-2">{{ rankEntry?.total_points ?? 0 }}</div>
-          <div class="text-caption" style="opacity:.75">Pontos</div>
+      <div class="d-flex flex-column flex-sm-row align-sm-center">
+        <!-- Linha 1: avatar + nome -->
+        <div class="d-flex align-center justify-center justify-sm-start">
+          <v-avatar
+            color="green-darken-1"
+            size="56"
+            class="mr-4"
+            style="cursor:pointer"
+            @click="openAvatarPicker()"
+          >
+            <v-img
+              v-if="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+              :src="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+              cover
+            />
+            <span v-else class="text-white font-weight-bold text-h6">
+              {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
+            </span>
+          </v-avatar>
+          <div class="text-subtitle-1 font-weight-bold">{{ auth.profile?.name }}</div>
         </div>
-        <div class="text-center mx-3">
-          <div class="text-h6 font-weight-bold text-amber-lighten-2">#{{ userPosition }}</div>
-          <div class="text-caption" style="opacity:.75">Ranking</div>
-        </div>
-        <v-divider vertical class="mx-2" style="height:40px" />
-        <div class="text-center mx-3">
-          <div class="text-h6 font-weight-bold text-amber-lighten-2 d-flex align-center justify-center">
-            <v-icon icon="mdi-seal" size="18" class="mr-1" />
-            {{ auth.profile?.total_seals ?? 0 }}
+
+        <!-- Linha 2 (mobile) / stats à direita (desktop) -->
+        <div class="d-flex align-center justify-center justify-sm-end flex-grow-1 mt-2 mt-sm-0">
+          <v-divider vertical class="mx-4 d-none d-sm-flex" style="height:40px" />
+          <div class="text-center mx-3">
+            <div class="text-h6 font-weight-bold text-amber-lighten-2">{{ rankEntry?.total_points ?? 0 }}</div>
+            <div class="text-caption" style="opacity:.75">Pontos</div>
           </div>
-          <div class="text-caption" style="opacity:.75">Selos</div>
+          <div class="text-center mx-3">
+            <div class="text-h6 font-weight-bold text-amber-lighten-2">#{{ userPosition }}</div>
+            <div class="text-caption" style="opacity:.75">Ranking</div>
+          </div>
+          <v-divider vertical class="mx-2" style="height:40px" />
+          <div class="text-center mx-3">
+            <div class="text-h6 font-weight-bold text-amber-lighten-2 d-flex align-center justify-center">
+              <v-icon icon="mdi-seal" size="18" class="mr-1" />
+              {{ auth.profile?.total_seals ?? 0 }}
+            </div>
+            <div class="text-caption" style="opacity:.75">Selos</div>
+          </div>
         </div>
       </div>
     </v-card>

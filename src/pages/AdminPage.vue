@@ -2,7 +2,24 @@
   <AppLayout>
     <div class="text-h5 font-weight-bold mb-4">Painel Administrativo</div>
 
-    <v-tabs v-model="tab" color="green-darken-3" class="mb-6">
+    <!-- Select visível apenas no mobile -->
+    <v-select
+      v-model="tab"
+      :items="[
+        { title: 'Importar jogos',     value: 'gemini'  },
+        { title: 'Gerenciar jogos',    value: 'games'   },
+        { title: 'Inserir resultados', value: 'results' },
+      ]"
+      item-title="title"
+      item-value="value"
+      variant="outlined"
+      density="comfortable"
+      color="green-darken-3"
+      class="d-flex d-sm-none mb-4"
+    />
+
+    <!-- Tabs visíveis apenas em sm+ -->
+    <v-tabs v-model="tab" color="green-darken-3" class="d-none d-sm-flex mb-6">
       <v-tab value="gemini">Importar jogos</v-tab>
       <v-tab value="games">Gerenciar jogos</v-tab>
       <v-tab value="results">Inserir resultados</v-tab>

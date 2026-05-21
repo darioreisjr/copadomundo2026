@@ -31,7 +31,7 @@
 
           <!-- Painel esquerdo: grid de avatares -->
           <div style="flex:0 0 58%;overflow-y:auto;padding:12px;background:rgba(var(--v-theme-surface-variant),0.15)">
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <div class="avatar-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
               <div
                 v-for="av in sortedAvatars"
                 :key="av.id"
@@ -283,5 +283,11 @@ onMounted(() => {
 .page-fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+@media (max-width: 599px) {
+  .avatar-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
 }
 </style>

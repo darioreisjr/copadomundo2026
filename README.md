@@ -69,7 +69,7 @@ O painel administrativo oferece:
 - Página de Termos de Uso e Privacidade com 8 seções completas (LGPD, regras do bolão, privacidade, contato)
 - Página de confirmação de conta com instruções passo a passo para ativar a conta via e-mail, exibida automaticamente após o cadastro bem-sucedido
 - Transições animadas entre páginas (fade + translate)
-- **Navegação responsiva:** menu lateral fixo no desktop; barra de ícones no rodapé (mobile) com menu admin agrupado sob ícone de escudo; hambúrguer abre tela cheia no mobile
+- **Navegação responsiva:** menu lateral fixo no desktop; barra de ícones no rodapé (mobile) com menu admin agrupado sob ícone de escudo; hambúrguer abre tela cheia no mobile; abas do Painel Admin e Minha Conta substituídas por select dropdown no mobile; listas administrativas (avatares, selos) exibidas como cards adaptativos com ações em botões de largura total no mobile
 - Página "Como usar" com duas abas: guia de login e guia completo de criação de conta
 - Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
 - Dashboard pessoal com card de perfil (avatar escolhido pelo usuário ou inicial do nome, pontos, posição no ranking e total de selos), jogos abertos para palpite, próximos jogos e últimos resultados

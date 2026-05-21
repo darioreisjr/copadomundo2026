@@ -2,7 +2,25 @@
   <AppLayout>
     <div class="text-h5 font-weight-bold mb-6">Minha Conta</div>
 
-    <v-tabs v-model="tab" color="green-darken-3" class="mb-6">
+    <!-- Select visível apenas no mobile -->
+    <v-select
+      v-model="tab"
+      :items="[
+        { title: 'Dados Pessoais', value: 'profile'     },
+        { title: 'Segurança',      value: 'security'    },
+        { title: 'Preferências',   value: 'preferences' },
+        { title: 'Excluir Conta',  value: 'danger'      },
+      ]"
+      item-title="title"
+      item-value="value"
+      variant="outlined"
+      density="comfortable"
+      color="green-darken-3"
+      class="d-flex d-sm-none mb-4"
+    />
+
+    <!-- Tabs visíveis apenas em sm+ -->
+    <v-tabs v-model="tab" color="green-darken-3" class="d-none d-sm-flex mb-6">
       <v-tab value="profile">
         <v-icon icon="mdi-account-circle-outline" class="mr-2" />Dados Pessoais
       </v-tab>
