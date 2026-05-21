@@ -12,52 +12,83 @@
   />
 
   <!-- Dialog global: seletor de avatar -->
-  <v-dialog v-model="avatarPickerOpen" max-width="480" scrollable>
+  <v-dialog v-model="avatarPickerOpen" max-width="640" scrollable>
     <v-card>
       <v-card-title class="pa-4 pb-2 text-body-1 font-weight-bold">
         Escolha seu avatar
       </v-card-title>
       <v-divider />
-      <v-card-text class="pa-4">
-        <v-progress-linear v-if="avatarsStore.loading" indeterminate color="green-darken-3" class="mb-4" />
+      <v-card-text class="pa-0">
+        <v-progress-linear v-if="avatarsStore.loading" indeterminate color="green-darken-3" />
         <div
           v-else-if="activeAvatars.length === 0"
-          class="text-center text-medium-emphasis py-6"
+          class="text-center text-medium-emphasis py-6 pa-4"
         >
           Nenhum avatar disponível ainda.
         </div>
-        <v-row v-else dense>
-          <v-col
-            v-for="av in activeAvatars"
-            :key="av.id"
-            cols="3"
-            class="d-flex justify-center"
-          >
-            <div style="position:relative;cursor:pointer" @click="handleAvatarClick(av)">
-              <v-avatar
-                size="64"
-                :style="[
-                  pickerSelected === av.url ? 'outline:3px solid #2e7d32;outline-offset:2px' : '',
-                  !isUnlocked(av) ? 'opacity:0.4;filter:grayscale(1)' : '',
-                ].filter(Boolean).join(';')"
-              >
-                <v-img :src="av.url" :alt="av.name" cover />
-              </v-avatar>
+        <!-- Layout dois painéis -->
+        <div v-else style="display:flex;min-height:360px">
+
+          <!-- Painel esquerdo: grid de avatares -->
+          <div style="flex:0 0 58%;overflow-y:auto;padding:12px;background:rgba(var(--v-theme-surface-variant),0.15)">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
               <div
-                v-if="!isUnlocked(av)"
-                style="position:absolute;inset:0;display:flex;flex-direction:column;
-                       align-items:center;justify-content:center;pointer-events:none;gap:2px"
+                v-for="av in sortedAvatars"
+                :key="av.id"
+                style="display:flex;justify-content:center;align-items:center;
+                       padding:10px;border-radius:10px;
+                       border:1px solid rgba(var(--v-theme-on-surface),0.1);
+                       background:rgba(var(--v-theme-surface),0.6)"
               >
-                <v-icon icon="mdi-lock" color="white" size="18" />
-                <span style="font-size:10px;font-weight:700;color:#fff;line-height:1;
-                             text-shadow:0 1px 2px rgba(0,0,0,.7)">
-                  {{ av.seal_cost }}
-                  <v-icon icon="mdi-seal" size="10" color="white" />
-                </span>
+                <div style="position:relative;cursor:pointer" @click="handleAvatarClick(av)">
+                  <v-avatar
+                    size="80"
+                    :style="[
+                      pickerSelected === av.url ? 'outline:3px solid #2e7d32;outline-offset:2px' : '',
+                      !isUnlocked(av) ? 'opacity:0.4;filter:grayscale(1)' : '',
+                    ].filter(Boolean).join(';')"
+                  >
+                    <v-img :src="av.url" :alt="av.name" cover />
+                  </v-avatar>
+                  <div
+                    v-if="!isUnlocked(av)"
+                    style="position:absolute;inset:0;display:flex;flex-direction:column;
+                           align-items:center;justify-content:center;pointer-events:none;gap:2px"
+                  >
+                    <v-icon icon="mdi-lock" color="white" size="20" />
+                    <span style="font-size:11px;font-weight:700;color:#fff;line-height:1;
+                                 text-shadow:0 1px 2px rgba(0,0,0,.7)">
+                      {{ av.seal_cost }}
+                      <v-icon icon="mdi-seal" size="11" color="white" />
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </v-col>
-        </v-row>
+          </div>
+
+          <!-- Divisor vertical -->
+          <v-divider vertical />
+
+          <!-- Painel direito: preview do avatar selecionado -->
+          <div style="flex:1;position:relative;overflow:hidden;background:rgba(var(--v-theme-surface-variant),0.4)">
+            <v-img
+              v-if="pickerSelected"
+              :src="pickerSelected"
+              :alt="selectedAvatarObj?.name"
+              cover
+              style="position:absolute;inset:0;width:100%;height:100%"
+            />
+            <v-icon
+              v-else
+              icon="mdi-account-circle"
+              size="120"
+              color="grey-lighten-1"
+              style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)"
+            />
+          </div>
+
+        </div>
       </v-card-text>
       <v-divider />
       <v-card-actions class="pa-4 justify-end ga-2">
@@ -162,6 +193,16 @@ const activeAvatars = computed(() => avatarsStore.avatars.filter(a => a.active))
 function isUnlocked(av) {
   return av.seal_cost === 0 || avatarsStore.unlockedAvatarIds.has(av.id)
 }
+
+const sortedAvatars = computed(() => {
+  const unlocked = activeAvatars.value.filter(a => isUnlocked(a))
+  const locked   = activeAvatars.value.filter(a => !isUnlocked(a))
+  return [...unlocked, ...locked]
+})
+
+const selectedAvatarObj = computed(() =>
+  avatarsStore.avatars.find(a => a.url === pickerSelected.value) ?? null
+)
 
 function handleAvatarClick(av) {
   if (isUnlocked(av)) {

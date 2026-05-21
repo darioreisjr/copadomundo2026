@@ -72,6 +72,8 @@ O painel administrativo oferece:
 - Página "Como usar" com duas abas: guia de login e guia completo de criação de conta
 - Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
 - Dashboard pessoal com card de perfil (avatar escolhido pelo usuário ou inicial do nome, pontos, posição no ranking e total de selos), jogos abertos para palpite, próximos jogos e últimos resultados
+- **Seletor de avatar redesenhado:** modal de dois painéis — esquerda exibe o catálogo em grade 3×N (avatares desbloqueados sempre primeiro, bloqueados com cadeado e custo em selos); direita exibe preview em tela cheia do avatar selecionado; clicar em avatar bloqueado abre diálogo de confirmação de desbloqueio com verificação de saldo
+- **Desbloqueio de avatares por selos:** avatares com `seal_cost > 0` requerem gasto de selos para serem usados; a RPC `unlock_avatar` é atômica (debita selos e registra desbloqueio em única transação)
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo (criação e edição enquanto a aposta está aberta)
 - Ranking global com medalhas para o top 3
@@ -229,11 +231,27 @@ Catálogo de avatares disponíveis para os usuários escolherem em seus perfis. 
 | url | text | URL pública da imagem |
 | category | text | Categoria opcional para agrupamento |
 | active | boolean | Se visível para os usuários (padrão: true) |
+| seal_cost | int | Custo em selos para desbloquear (0 = gratuito, ≥ 0) |
+| is_default | boolean | Avatar padrão atribuído a novos usuários (único por vez) |
 | created_by | uuid | FK → auth.users (admin que criou) |
 | created_at | timestamptz | — |
 
 > RLS: usuários autenticados veem apenas avatares com `active = true`; admins veem todos.
 > Storage: bucket público `avatars` no Supabase Storage armazena as imagens enviadas via upload.
+> Índice único parcial `avatars_single_default` garante que apenas um avatar tenha `is_default = true` por vez.
+
+#### `user_avatar_unlocks`
+Registro de avatares desbloqueados por cada usuário via gasto de selos.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| id | uuid | PK |
+| user_id | uuid | FK → profiles |
+| avatar_id | uuid | FK → avatars |
+| unlocked_at | timestamptz | Data/hora do desbloqueio |
+
+> Unique constraint em `(user_id, avatar_id)` — cada avatar só pode ser desbloqueado uma vez por usuário.
+> RLS: usuários leem apenas seus próprios registros; inserção feita exclusivamente pela RPC `unlock_avatar` (security definer).
 
 #### `seal_rewards`
 Tabela de configuração dos eventos que concedem selos aos jogadores. Gerenciada pelo admin via `/admin/selos`.
@@ -276,6 +294,8 @@ Histórico de selos concedidos a cada usuário. Aplicado via [supabase/seals-awa
 | `recalculate_game_bets(game_id)` | Calcula pontos de todos os palpites de um jogo, atualiza ranking e distribui selos |
 | `award_game_seals(game_id)` | Distribui selos de `bet_sent`, acerto e `knockout_bonus` para cada apostador do jogo |
 | `claim_daily_seal()` | Concede selos do baú diário ao usuário autenticado (idempotente por dia) |
+| `unlock_avatar(p_avatar_id)` | Atômico: verifica saldo de selos, debita e registra o desbloqueio em `user_avatar_unlocks` |
+| `set_default_avatar(p_avatar_id)` | Admin only: limpa o avatar padrão anterior e define o novo (somente admins) |
 | `handle_new_user()` | Trigger: cria perfil automaticamente no signup |
 | `set_bet_window()` | Trigger: define janela de apostas ao criar/atualizar jogo |
 | `delete_user()` | RPC com SECURITY DEFINER: exclui o usuário autenticado de `auth.users` (cascade apaga profiles, bets e ranking) |
@@ -404,8 +424,10 @@ npm run preview  # Preview do build local
 | Lançar resultados | ❌ | ✅ |
 | Acessar painel admin | ❌ | ✅ |
 | Ver palpites de outros | ❌ | ✅ |
+| Desbloquear avatares com selos | ✅ | ✅ |
 | Gerenciar avatares do catálogo | ❌ | ✅ |
 | Configurar selos da copa | ❌ | ✅ |
+| Definir avatar padrão | ❌ | ✅ |
 
 RLS (Row Level Security) ativado em todas as tabelas. As políticas estão definidas em `supabase/schema.sql` e `supabase/avatars-schema.sql`.
 
