@@ -1,12 +1,17 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 
 export const useAvatarsStore = defineStore('avatars', () => {
-  const avatars = ref([])
-  const loading = ref(false)
-  const error   = ref(null)
+  const avatars           = ref([])
+  const loading           = ref(false)
+  const error             = ref(null)
+  const unlockedAvatarIds = ref(new Set())
+
+  const defaultAvatarUrl = computed(() =>
+    avatars.value.find(a => a.is_default)?.url ?? null
+  )
 
   async function fetchAvatars() {
     loading.value = true
@@ -59,6 +64,28 @@ export const useAvatarsStore = defineStore('avatars', () => {
     avatars.value = avatars.value.filter(a => a.id !== id)
   }
 
+  async function fetchUnlockedAvatars() {
+    const { data, error: err } = await supabase
+      .from('user_avatar_unlocks')
+      .select('avatar_id')
+    if (err) throw err
+    unlockedAvatarIds.value = new Set(data.map(r => r.avatar_id))
+  }
+
+  async function unlockAvatar(avatarId) {
+    const { data, error: err } = await supabase.rpc('unlock_avatar', { p_avatar_id: avatarId })
+    if (err) throw err
+    if (!data.success) throw new Error(data.reason)
+    unlockedAvatarIds.value = new Set([...unlockedAvatarIds.value, avatarId])
+    return data
+  }
+
+  async function setDefaultAvatar(avatarId) {
+    const { error: err } = await supabase.rpc('set_default_avatar', { p_avatar_id: avatarId })
+    if (err) throw err
+    avatars.value = avatars.value.map(a => ({ ...a, is_default: a.id === avatarId }))
+  }
+
   async function uploadAvatarImage(file) {
     const ext      = file.name.split('.').pop()
     const filename = `${crypto.randomUUID()}.${ext}`
@@ -72,7 +99,9 @@ export const useAvatarsStore = defineStore('avatars', () => {
 
   return {
     avatars, loading, error,
+    unlockedAvatarIds, defaultAvatarUrl,
     fetchAvatars, addAvatar, updateAvatar,
     deactivateAvatar, activateAvatar, deleteAvatar, uploadAvatarImage,
+    fetchUnlockedAvatars, unlockAvatar, setDefaultAvatar,
   }
 })

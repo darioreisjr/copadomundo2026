@@ -99,7 +99,11 @@
             style="cursor:pointer"
             @click="openAvatarPicker"
           >
-            <v-img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" cover />
+            <v-img
+              v-if="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+              :src="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+              cover
+            />
             <span v-else class="text-white font-weight-bold text-h6">
               {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
             </span>
@@ -236,8 +240,9 @@
 
 <script setup>
 import { ref, inject, watch } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useToastStore } from '@/stores/toast'
+import { useAuthStore }    from '@/stores/auth'
+import { useToastStore }   from '@/stores/toast'
+import { useAvatarsStore } from '@/stores/avatars'
 import { useRouter } from 'vue-router'
 
 const { fluid, isPublic } = defineProps({
@@ -245,7 +250,8 @@ const { fluid, isPublic } = defineProps({
   isPublic: { type: Boolean, default: false },
 })
 
-const auth = useAuthStore()
+const auth         = useAuthStore()
+const avatarsStore = useAvatarsStore()
 const toast = useToastStore()
 const router = useRouter()
 

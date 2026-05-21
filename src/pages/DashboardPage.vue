@@ -10,7 +10,11 @@
           style="cursor:pointer"
           @click="openAvatarPicker()"
         >
-          <v-img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" cover />
+          <v-img
+            v-if="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+            :src="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+            cover
+          />
           <span v-else class="text-white font-weight-bold text-h6">
             {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
           </span>
@@ -103,7 +107,8 @@ import { computed, inject, onMounted } from 'vue'
 
 import AppLayout from '@/components/AppLayout.vue'
 import GameCard from '@/components/GameCard.vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore }    from '@/stores/auth'
+import { useAvatarsStore } from '@/stores/avatars'
 import { useGamesStore } from '@/stores/games'
 import { useBetsStore } from '@/stores/bets'
 import { useRankingStore } from '@/stores/ranking'
@@ -111,7 +116,8 @@ import { useRankingStore } from '@/stores/ranking'
 const openAvatarPicker = inject('openAvatarPicker', () => {})
 const triggerDailyChest = inject('triggerDailyChest', () => {})
 
-const auth = useAuthStore()
+const auth         = useAuthStore()
+const avatarsStore = useAvatarsStore()
 const gamesStore = useGamesStore()
 const betsStore = useBetsStore()
 const rankingStore = useRankingStore()

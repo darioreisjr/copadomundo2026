@@ -31,7 +31,11 @@
                 style="cursor:pointer"
                 @click="openAvatarPicker()"
               >
-                <v-img v-if="auth.profile?.avatar_url" :src="auth.profile.avatar_url" cover />
+                <v-img
+                  v-if="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+                  :src="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+                  cover
+                />
                 <span v-else class="text-white font-weight-bold text-h5">
                   {{ (profileForm.name || 'U')[0].toUpperCase() }}
                 </span>
@@ -330,13 +334,15 @@
 import { ref, reactive, onMounted, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
-import { useAuthStore } from '@/stores/auth'
-import { useToastStore } from '@/stores/toast'
+import { useAuthStore }    from '@/stores/auth'
+import { useToastStore }   from '@/stores/toast'
+import { useAvatarsStore } from '@/stores/avatars'
 import { supabase } from '@/lib/supabase'
 
 const openAvatarPicker = inject('openAvatarPicker', () => {})
 
-const auth = useAuthStore()
+const auth         = useAuthStore()
+const avatarsStore = useAvatarsStore()
 const toast = useToastStore()
 const router = useRouter()
 

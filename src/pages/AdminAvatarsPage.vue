@@ -61,6 +61,8 @@
             <th>Imagem</th>
             <th>Nome</th>
             <th>Categoria</th>
+            <th>Selos</th>
+            <th>Padrão</th>
             <th>Status</th>
             <th>Ações</th>
           </tr>
@@ -74,6 +76,29 @@
             </td>
             <td>{{ avatar.name }}</td>
             <td>{{ avatar.category ?? '—' }}</td>
+            <td>
+              <v-chip
+                v-if="avatar.seal_cost > 0"
+                size="x-small"
+                color="amber-darken-2"
+                variant="tonal"
+                prepend-icon="mdi-seal"
+              >
+                {{ avatar.seal_cost }}
+              </v-chip>
+              <span v-else class="text-caption text-medium-emphasis">Grátis</span>
+            </td>
+            <td>
+              <v-chip
+                v-if="avatar.is_default"
+                size="x-small"
+                color="green-darken-3"
+                variant="flat"
+                prepend-icon="mdi-star"
+              >
+                Padrão
+              </v-chip>
+            </td>
             <td>
               <v-chip
                 :color="avatar.active ? 'green' : 'grey'"
@@ -139,10 +164,37 @@
             label="Avatar ativo (visível para usuários)"
             color="green-darken-3"
             hide-details
-            class="mb-4"
+            class="mb-2"
           />
 
-          <div class="text-body-2 font-weight-medium mb-3">Imagem</div>
+          <v-text-field
+            v-model.number="avatarForm.seal_cost"
+            label="Custo em selos (0 = gratuito)"
+            prepend-inner-icon="mdi-seal"
+            type="number"
+            min="0"
+            :rules="[v => v >= 0 || 'Valor deve ser 0 ou maior']"
+            class="mb-2"
+          />
+
+          <v-switch
+            v-model="avatarForm.is_default"
+            label="Avatar padrão (exibido para usuários sem avatar)"
+            color="amber-darken-2"
+            hide-details
+            class="mb-1"
+          />
+          <v-alert
+            v-if="avatarForm.is_default && existingDefault && existingDefault.id !== editAvatar?.id"
+            type="warning"
+            density="compact"
+            variant="tonal"
+            class="mb-3"
+          >
+            O avatar "<strong>{{ existingDefault.name }}</strong>" deixará de ser o padrão.
+          </v-alert>
+
+          <div class="text-body-2 font-weight-medium mb-3 mt-2">Imagem</div>
           <v-btn-toggle
             v-model="avatarImageMode"
             mandatory
@@ -258,7 +310,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAvatarsStore } from '@/stores/avatars'
 import { useToastStore }   from '@/stores/toast'
@@ -267,6 +319,8 @@ const avatarsStore = useAvatarsStore()
 const toast        = useToastStore()
 
 onMounted(() => avatarsStore.fetchAvatars())
+
+const existingDefault = computed(() => avatarsStore.avatars.find(a => a.is_default) ?? null)
 
 // --- Dialog criar/editar ---
 const avatarDialog       = ref(false)
@@ -279,15 +333,17 @@ const avatarFileInput    = ref([])
 const avatarUploadPreview = ref('')
 
 const avatarForm = reactive({
-  name:     '',
-  category: '',
-  url:      '',
-  active:   true,
+  name:       '',
+  category:   '',
+  url:        '',
+  active:     true,
+  seal_cost:  0,
+  is_default: false,
 })
 
 function openNewDialog() {
   editAvatar.value = null
-  Object.assign(avatarForm, { name: '', category: '', url: '', active: true })
+  Object.assign(avatarForm, { name: '', category: '', url: '', active: true, seal_cost: 0, is_default: false })
   avatarImageMode.value     = 'url'
   avatarFileInput.value     = []
   avatarUploadPreview.value = ''
@@ -298,10 +354,12 @@ function openNewDialog() {
 function openEditDialog(avatar) {
   editAvatar.value = avatar
   Object.assign(avatarForm, {
-    name:     avatar.name,
-    category: avatar.category ?? '',
-    url:      avatar.url,
-    active:   avatar.active,
+    name:       avatar.name,
+    category:   avatar.category ?? '',
+    url:        avatar.url,
+    active:     avatar.active,
+    seal_cost:  avatar.seal_cost ?? 0,
+    is_default: avatar.is_default ?? false,
   })
   avatarImageMode.value     = 'url'
   avatarFileInput.value     = []
@@ -339,17 +397,20 @@ async function saveAvatar() {
     }
 
     const payload = {
-      name:     avatarForm.name,
-      category: avatarForm.category || null,
-      url:      finalUrl,
-      active:   avatarForm.active,
+      name:      avatarForm.name,
+      category:  avatarForm.category || null,
+      url:       finalUrl,
+      active:    avatarForm.active,
+      seal_cost: Number(avatarForm.seal_cost) || 0,
     }
 
     if (editAvatar.value?.id) {
       await avatarsStore.updateAvatar(editAvatar.value.id, payload)
+      if (avatarForm.is_default) await avatarsStore.setDefaultAvatar(editAvatar.value.id)
       toast.notify('Avatar atualizado!')
     } else {
-      await avatarsStore.addAvatar(payload)
+      const created = await avatarsStore.addAvatar(payload)
+      if (avatarForm.is_default) await avatarsStore.setDefaultAvatar(created.id)
       toast.notify('Avatar adicionado!')
     }
     closeDialog()
