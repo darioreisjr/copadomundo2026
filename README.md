@@ -69,6 +69,7 @@ O painel administrativo oferece:
 - Página de Termos de Uso e Privacidade com 8 seções completas (LGPD, regras do bolão, privacidade, contato)
 - Página de confirmação de conta com instruções passo a passo para ativar a conta via e-mail, exibida automaticamente após o cadastro bem-sucedido
 - Transições animadas entre páginas (fade + translate)
+- **Navegação responsiva:** menu lateral fixo no desktop; barra de ícones no rodapé (mobile) com menu admin agrupado sob ícone de escudo; hambúrguer abre tela cheia no mobile
 - Página "Como usar" com duas abas: guia de login e guia completo de criação de conta
 - Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
 - Dashboard pessoal com card de perfil (avatar escolhido pelo usuário ou inicial do nome, pontos, posição no ranking e total de selos), jogos abertos para palpite, próximos jogos e últimos resultados
@@ -129,7 +130,7 @@ copa-do-mundo/
     │   ├── footballApi.js      # Busca jogos oficiais da Copa 2026 via OpenFootball
     │   └── gemini.js           # Tradução de nomes e emojis de bandeiras via Gemini
     ├── components/
-    │   ├── AppLayout.vue       # Navbar + footer com links dinâmicos por papel e toast global
+    │   ├── AppLayout.vue       # Layout principal: menu lateral (desktop), bottom nav com ícones (mobile), drawer fullscreen do hambúrguer (mobile), footer e toast global
     │   ├── GameCard.vue        # Card reutilizável de jogo com palpite e pontos
     │   └── SealRewardModal.vue # Modal animado de recompensa de selos (baú diário e outros eventos)
     └── pages/
@@ -435,7 +436,7 @@ RLS (Row Level Security) ativado em todas as tabelas. As políticas estão defin
 
 ## Painel Admin
 
-Acesse `/admin` com uma conta de role `admin`. O menu lateral exibe três itens exclusivos para admins: **Painel Admin**, **Avatares** e **Selos da Copa**.
+Acesse `/admin` com uma conta de role `admin`. No desktop, o menu lateral exibe três itens exclusivos para admins: **Painel Admin**, **Avatares** e **Selos da Copa**. No mobile, esses itens ficam agrupados sob o ícone de escudo na barra de navegação inferior.
 
 ### Aba 1 — Importar Jogos
 

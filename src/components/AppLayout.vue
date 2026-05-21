@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <v-navigation-drawer
-      v-if="!isPublic && auth.user"
+      v-if="!isPublic && auth.user && display.smAndUp.value"
       permanent
       color="green-darken-4"
       width="220"
@@ -84,7 +84,9 @@
     </v-app-bar>
 
     <template v-if="!isPublic && auth.user">
+      <!-- Desktop: drawer lateral direito -->
       <v-navigation-drawer
+        v-if="!display.xs.value"
         v-model="rightDrawer"
         location="right"
         temporary
@@ -152,9 +154,124 @@
           </v-list>
         </template>
       </v-navigation-drawer>
+
+      <!-- Mobile: dialog fullscreen -->
+      <v-dialog
+        v-if="display.xs.value"
+        v-model="rightDrawer"
+        fullscreen
+        transition="dialog-top-transition"
+      >
+        <v-card color="green-darken-4" class="d-flex flex-column" style="height:100%">
+          <v-toolbar color="green-darken-4" flat>
+            <v-spacer />
+            <v-btn icon="mdi-close" color="white" @click="rightDrawer = false" />
+          </v-toolbar>
+
+          <div class="d-flex flex-column align-center py-6 px-4">
+            <v-avatar
+              color="green-darken-1"
+              size="80"
+              class="mb-3"
+              style="cursor:pointer"
+              @click="openAvatarPicker; rightDrawer = false"
+            >
+              <v-img
+                v-if="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+                :src="auth.profile?.avatar_url || avatarsStore.defaultAvatarUrl"
+                cover
+              />
+              <span v-else class="text-white font-weight-bold text-h5">
+                {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
+              </span>
+            </v-avatar>
+            <span class="text-white font-weight-medium text-h6 text-center">
+              {{ auth.profile?.name || 'Usuário' }}
+            </span>
+            <span v-if="auth.profile?.role === 'admin'" class="text-caption mt-1" style="color:#f5c542">Admin</span>
+          </div>
+
+          <v-divider />
+          <v-list density="comfortable" nav class="mt-2 flex-grow-1" bg-color="green-darken-4" base-color="white">
+            <v-list-item
+              prepend-icon="mdi-account-cog"
+              title="Minha Conta"
+              :to="{ name: 'Account' }"
+              rounded="lg"
+              @click="rightDrawer = false"
+            />
+            <v-list-item
+              prepend-icon="mdi-help-circle-outline"
+              title="Como Usar"
+              :to="{ name: 'HowTo' }"
+              rounded="lg"
+              @click="rightDrawer = false"
+            />
+            <v-list-item
+              prepend-icon="mdi-file-document-outline"
+              title="Termos"
+              :to="{ name: 'Terms' }"
+              rounded="lg"
+              @click="rightDrawer = false"
+            />
+          </v-list>
+
+          <v-divider />
+          <v-list density="comfortable" nav class="py-2" bg-color="green-darken-4" base-color="white">
+            <v-list-item
+              prepend-icon="mdi-logout"
+              title="Sair"
+              rounded="lg"
+              @click="handleLogout"
+            />
+          </v-list>
+        </v-card>
+      </v-dialog>
     </template>
 
-    <v-main>
+    <v-bottom-navigation
+      v-if="!isPublic && auth.user && display.xs.value"
+      bg-color="green-darken-4"
+      color="white"
+      grow
+      style="position:fixed;bottom:0;left:0;right:0;z-index:1000"
+    >
+      <v-btn :to="{ name: 'Dashboard' }" icon="mdi-view-dashboard" />
+      <v-btn :to="{ name: 'Games' }"     icon="mdi-soccer"         />
+      <v-btn :to="{ name: 'Ranking' }"   icon="mdi-podium"         />
+      <v-menu
+        v-if="auth.profile?.role === 'admin'"
+        v-model="adminMenu"
+        location="top"
+        :close-on-content-click="true"
+      >
+        <template #activator="{ props }">
+          <v-btn icon="mdi-shield-crown" v-bind="props" />
+        </template>
+        <v-list bg-color="green-darken-4" density="compact" nav>
+          <v-list-item
+            prepend-icon="mdi-shield-crown"
+            title="Painel Admin"
+            :to="{ name: 'Admin' }"
+            base-color="white"
+          />
+          <v-list-item
+            prepend-icon="mdi-account-circle"
+            title="Avatares"
+            :to="{ name: 'AdminAvatars' }"
+            base-color="white"
+          />
+          <v-list-item
+            prepend-icon="mdi-seal"
+            title="Selos da Copa"
+            :to="{ name: 'AdminSeals' }"
+            base-color="white"
+          />
+        </v-list>
+      </v-menu>
+    </v-bottom-navigation>
+
+    <v-main :style="display.xs.value && !isPublic && auth.user ? 'padding-bottom:56px' : ''">
       <v-container :fluid="fluid" :class="[fluid ? 'pa-0' : 'py-6', 'main-content']">
         <slot />
       </v-container>
@@ -240,6 +357,7 @@
 
 <script setup>
 import { ref, inject, watch } from 'vue'
+import { useDisplay } from 'vuetify'
 import { useAuthStore }    from '@/stores/auth'
 import { useToastStore }   from '@/stores/toast'
 import { useAvatarsStore } from '@/stores/avatars'
@@ -250,6 +368,7 @@ const { fluid, isPublic } = defineProps({
   isPublic: { type: Boolean, default: false },
 })
 
+const display      = useDisplay()
 const auth         = useAuthStore()
 const avatarsStore = useAvatarsStore()
 const toast = useToastStore()
@@ -258,6 +377,7 @@ const router = useRouter()
 const openAvatarPicker = inject('openAvatarPicker', () => {})
 
 const rightDrawer = ref(false)
+const adminMenu   = ref(false)
 
 
 async function handleLogout() {
