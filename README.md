@@ -77,7 +77,7 @@ O painel administrativo oferece:
 - **Desbloqueio de avatares por selos:** avatares com `seal_cost > 0` requerem gasto de selos para serem usados; a RPC `unlock_avatar` é atômica (debita selos e registra desbloqueio em única transação)
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo: primeira vez gratuita; após salvar, a tela exibe o placar em modo somente leitura — atualizar um palpite existente custa 30 selos (confirmação via diálogo antes do débito); placar centralizado nos campos de entrada; feedback de sucesso via toast no canto inferior direito
-- **Especialista IA:** botão "Chamar Especialista" na tela de palpite consulta o histórico real de confrontos entre as duas seleções em Copas do Mundo (via OpenFootball, 1930–2022) e passa os dados verificados ao Google Gemini, que gera análise estatística com vitórias, empates, gols, probabilidades de cada resultado e sugestão de placar
+- **Especialista IA:** botão "Chamar Especialista" na tela de palpite custa **20 selos** e consulta o histórico real de confrontos entre as duas seleções em Copas do Mundo (via OpenFootball, 1930–2022), passando os dados verificados ao Google Gemini para gerar análise estatística com vitórias, empates, gols, probabilidades de cada resultado e sugestão de placar; a análise é gerada **uma única vez** e armazenada em cache no banco (tabela `match_analyses`) — usuários subsequentes reutilizam o resultado sem nova chamada à IA; o usuário que já pagou tem a análise carregada automaticamente ao retornar à página e o botão fica desabilitado (consulta registrada em `user_seals` com `event_key = 'ai_expert_called'`)
 - Ranking global com medalhas para o top 3
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
   - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone; e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
@@ -105,10 +105,11 @@ copa-do-mundo/
 ├── package.json
 ├── .env.example
 ├── supabase/
-│   ├── schema.sql              # Schema principal: tabelas, funções, triggers, RLS
-│   ├── avatars-schema.sql      # Schema isolado: tabela avatars, RLS, bucket de storage
-│   ├── coins-schema.sql        # Schema de selos: tabela seal_rewards, RLS e seed de eventos
-│   └── seals-awards-schema.sql # Schema de distribuição: tabela user_seals, coluna total_seals, RPCs de concessão
+│   ├── schema.sql                  # Schema principal: tabelas, funções, triggers, RLS
+│   ├── avatars-schema.sql          # Schema isolado: tabela avatars, RLS, bucket de storage
+│   ├── coins-schema.sql            # Schema de selos: tabela seal_rewards, RLS e seed de eventos
+│   ├── seals-awards-schema.sql     # Schema de distribuição: tabela user_seals, coluna total_seals, RPCs de concessão
+│   └── match-analyses-schema.sql   # Cache de análises do Especialista IA: tabela match_analyses, RLS
 ├── public/
 │   ├── favicon.svg
 │   └── icons.svg
@@ -121,11 +122,13 @@ copa-do-mundo/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
     │   ├── avatars.js          # CRUD de avatares + upload para Supabase Storage
     │   ├── games.js            # CRUD de jogos, lançamento de resultados
-    │   ├── bets.js             # Palpites do usuário autenticado
+    │   ├── bets.js             # Palpites, débito de selos e verificação de pagamento do especialista
     │   ├── ranking.js          # Leaderboard global
     │   ├── sealRewards.js      # CRUD dos eventos de selos (somente admin)
     │   ├── seals.js            # Concessão de selos ao usuário: baú diário, estado do modal
     │   └── toast.js            # Notificações globais (snackbar)
+    ├── composables/
+    │   └── useMatchAnalysis.js # Cache do Especialista IA: busca no Supabase ou gera via Gemini e salva
     ├── lib/
     │   ├── supabase.js         # Cliente Supabase
     │   ├── footballApi.js      # Busca jogos oficiais da Copa 2026 via OpenFootball
@@ -164,6 +167,7 @@ Schema principal em [supabase/schema.sql](supabase/schema.sql).
 Schema de avatares em [supabase/avatars-schema.sql](supabase/avatars-schema.sql) — aplicar após o schema principal.
 Schema de eventos de selos em [supabase/coins-schema.sql](supabase/coins-schema.sql) — aplicar após o schema principal.
 Schema de distribuição de selos em [supabase/seals-awards-schema.sql](supabase/seals-awards-schema.sql) — aplicar após coins-schema.sql.
+Schema de cache do Especialista IA em [supabase/match-analyses-schema.sql](supabase/match-analyses-schema.sql) — aplicar após seals-awards-schema.sql.
 
 ### Tabelas
 
@@ -280,13 +284,34 @@ Histórico de selos concedidos a cada usuário. Aplicado via [supabase/seals-awa
 |---|---|---|
 | id | uuid | PK |
 | user_id | uuid | FK → profiles |
-| event_key | text | Chave do evento (ex: `daily_chest`, `exact_score`) |
-| seals | int | Quantidade de selos concedidos neste evento |
+| event_key | text | Chave do evento (ex: `daily_chest`, `exact_score`, `ai_expert_called`) |
+| seals | int | Quantidade de selos gastos/concedidos neste evento (sempre positivo) |
 | game_id | uuid | FK → games (nullable — preenchido para eventos de jogo) |
 | awarded_at | timestamptz | Data/hora da concessão |
 
 > Índice em `(user_id, event_key, awarded_at)` para verificação eficiente do baú diário.
 > RLS: usuários leem apenas seus próprios registros; inserção feita exclusivamente por RPCs `security definer`.
+> O evento `ai_expert_called` registra o custo de 20 selos ao chamar o Especialista IA por jogo.
+
+#### `match_analyses`
+Cache das análises do Especialista IA, compartilhado entre todos os usuários. Aplicado via [supabase/match-analyses-schema.sql](supabase/match-analyses-schema.sql).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| game_id | uuid | PK, FK → games (uma análise por jogo) |
+| total_jogos | int | Total de confrontos em todas as competições |
+| vitorias_a | int | Vitórias do time A em todas as competições |
+| vitorias_b | int | Vitórias do time B em todas as competições |
+| empates | int | Empates em todas as competições |
+| gols_a / gols_b | int | Total de gols de cada time (nullable se incerto) |
+| ultima_copa | text | Descrição do último confronto em Copa do Mundo com placar |
+| probabilidade_a / probabilidade_empate / probabilidade_b | int | Probabilidades (somam 100) |
+| placar_sugerido | text | Placar mais provável segundo o histórico |
+| analise | text | 2–3 frases factuais sobre a rivalidade |
+| created_at | timestamptz | Data/hora da geração |
+
+> RLS: qualquer usuário autenticado pode ler; inserção permitida a usuários autenticados (PK impede duplicatas).
+> A análise é gerada uma única vez pelo primeiro usuário a pagar o especialista e reutilizada por todos os demais.
 
 ### Funções SQL principais
 
@@ -346,6 +371,7 @@ cp .env.example .env
 # 2. supabase/avatars-schema.sql
 # 3. supabase/coins-schema.sql
 # 4. supabase/seals-awards-schema.sql
+# 5. supabase/match-analyses-schema.sql
 
 # 5. Adicione a constraint de unicidade (se o banco já existia)
 # Execute no SQL Editor do Supabase:

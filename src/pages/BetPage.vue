@@ -9,12 +9,13 @@
           <v-btn
             v-if="game"
             variant="outlined"
-            color="green-darken-3"
+            :color="alreadyPaidExpert ? 'grey' : 'green-darken-3'"
             prepend-icon="mdi-robot-excited"
             :loading="loadingAnalysis"
+            :disabled="alreadyPaidExpert"
             @click="callExpert"
           >
-            Chamar Especialista
+            {{ alreadyPaidExpert ? 'Especialista consultado' : 'Chamar Especialista' }}
           </v-btn>
         </div>
 
@@ -203,6 +204,23 @@
       </v-col>
     </v-row>
 
+    <!-- Diálogo de confirmação do especialista IA -->
+    <v-dialog v-model="showExpertDialog" max-width="400">
+      <v-card>
+        <v-card-title class="text-h6">Chamar Especialista IA</v-card-title>
+        <v-card-text>
+          Consultar o especialista custa <strong>20 selos</strong>.<br>
+          Você tem <strong>{{ authStore.profile?.total_seals ?? 0 }} selos</strong>.<br><br>
+          Deseja continuar?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showExpertDialog = false">Cancelar</v-btn>
+          <v-btn color="green-darken-3" variant="flat" :loading="saving" @click="confirmExpert">Confirmar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Diálogo de confirmação de atualização -->
     <v-dialog v-model="showConfirmDialog" max-width="400">
       <v-card>
@@ -230,7 +248,7 @@ import { useGamesStore } from '@/stores/games'
 import { useBetsStore } from '@/stores/bets'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-import { analyzeMatch } from '@/lib/gemini'
+import { useMatchAnalysis } from '@/composables/useMatchAnalysis'
 
 const route      = useRoute()
 const gamesStore = useGamesStore()
@@ -246,10 +264,11 @@ const loading           = ref(true)
 const saving            = ref(false)
 const error             = ref('')
 const formRef           = ref(null)
-const showConfirmDialog = ref(false)
-const editingMode       = ref(false)
-const analysis          = ref(null)
-const loadingAnalysis   = ref(false)
+const showConfirmDialog  = ref(false)
+const showExpertDialog   = ref(false)
+const editingMode        = ref(false)
+const alreadyPaidExpert  = ref(false)
+const { analysis, loadingAnalysis, loadAnalysis } = useMatchAnalysis()
 
 const statusMap = {
   upcoming: { label: 'Em breve',   color: 'grey' },
@@ -278,16 +297,28 @@ function formatDate(dt) {
   return new Date(dt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-async function callExpert() {
-  if (loadingAnalysis.value) return
-  analysis.value = null
-  loadingAnalysis.value = true
+function callExpert() {
+  if ((authStore.profile?.total_seals ?? 0) < 20) {
+    toast.notify('Você precisa de pelo menos 20 selos para chamar o especialista.', 'error')
+    return
+  }
+  showExpertDialog.value = true
+}
+
+async function confirmExpert() {
+  saving.value = true
   try {
-    analysis.value = await analyzeMatch(game.value.team_a, game.value.team_b)
+    await betsStore.deductSealsForExpert(game.value.id)
+    alreadyPaidExpert.value = true
+    showExpertDialog.value = false
+    await loadAnalysis(game.value.id, game.value.team_a, game.value.team_b)
+    if (!analysis.value) {
+      toast.notify('Não foi possível carregar a análise. Tente novamente.', 'error')
+    }
   } catch {
-    toast.notify('Não foi possível carregar a análise. Tente novamente.', 'error')
+    toast.notify('Erro ao debitar selos. Tente novamente.', 'error')
   } finally {
-    loadingAnalysis.value = false
+    saving.value = false
   }
 }
 
@@ -343,6 +374,13 @@ onMounted(async () => {
     scoreB.value = existingBet.value.score_b
   }
   loading.value = false
+
+  if (game.value) {
+    alreadyPaidExpert.value = await betsStore.hasCalledExpert(game.value.id)
+    if (alreadyPaidExpert.value) {
+      await loadAnalysis(game.value.id, game.value.team_a, game.value.team_b)
+    }
+  }
 })
 </script>
 
