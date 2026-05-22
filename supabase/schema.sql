@@ -28,12 +28,14 @@ alter table public.profiles add column if not exists notifications_ranking boole
 
 alter table public.profiles enable row level security;
 
-drop policy if exists "profiles: users read own"  on public.profiles;
-drop policy if exists "profiles: users update own" on public.profiles;
-drop policy if exists "profiles: service insert"   on public.profiles;
+drop policy if exists "profiles: users read own"    on public.profiles;
+drop policy if exists "profiles: anyone reads name"  on public.profiles;
+drop policy if exists "profiles: users update own"   on public.profiles;
+drop policy if exists "profiles: service insert"     on public.profiles;
 
-create policy "profiles: users read own" on public.profiles
-  for select using (auth.uid() = id);
+-- Leitura pública apenas do nome (para ranking e outras telas sociais)
+create policy "profiles: anyone reads name" on public.profiles
+  for select using (true);
 
 create policy "profiles: users update own" on public.profiles
   for update using (auth.uid() = id)

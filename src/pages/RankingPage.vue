@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="text-h5 font-weight-bold mb-4">🏆 Ranking Geral</div>
+    <div class="text-h5 font-weight-bold mb-4">Ranking Geral</div>
 
     <v-progress-linear v-if="rankingStore.loading" indeterminate color="green-darken-3" class="mb-4" />
 
@@ -8,14 +8,14 @@
       <v-card elevation="2">
         <v-table>
           <thead>
-            <tr>
-              <th class="text-left">#</th>
+            <tr style="border-bottom: 2px solid rgba(0,0,0,0.12)">
+              <th class="text-center" style="padding-left:0; padding-right:0">Posição</th>
               <th class="text-left">Nome</th>
-              <th class="text-right">Pontos</th>
-              <th class="text-right">Placares exatos</th>
-              <th class="text-right">Vencedor</th>
-              <th class="text-right">Empates</th>
-              <th class="text-right">Palpites</th>
+              <th class="text-center">Pontos</th>
+              <th class="text-center">Placares exatos</th>
+              <th class="text-center">Vencedor</th>
+              <th class="text-center">Empates</th>
+              <th class="text-center">Palpites</th>
             </tr>
           </thead>
           <tbody>
@@ -24,7 +24,7 @@
               :key="entry.user_id"
               :class="entry.user_id === auth.user?.id ? 'bg-green-lighten-5 font-weight-bold' : ''"
             >
-              <td>
+              <td class="text-center" style="padding-left:0; padding-right:0">
                 <v-chip
                   :color="idx === 0 ? 'amber' : idx === 1 ? 'grey-lighten-1' : idx === 2 ? 'brown-lighten-2' : 'default'"
                   :variant="idx < 3 ? 'elevated' : 'text'"
@@ -37,11 +37,11 @@
                 {{ entry.profiles?.name ?? '—' }}
                 <v-chip v-if="entry.user_id === auth.user?.id" size="x-small" color="green" class="ml-1">Você</v-chip>
               </td>
-              <td class="text-right font-weight-bold text-green-darken-3">{{ entry.total_points }}</td>
-              <td class="text-right">{{ entry.exact_hits }}</td>
-              <td class="text-right">{{ entry.winner_hits }}</td>
-              <td class="text-right">{{ entry.draw_hits }}</td>
-              <td class="text-right">{{ entry.total_bets }}</td>
+              <td class="text-center font-weight-bold text-green-darken-3">{{ entry.total_points }}</td>
+              <td class="text-center">{{ entry.exact_hits }}</td>
+              <td class="text-center">{{ entry.winner_hits }}</td>
+              <td class="text-center">{{ entry.draw_hits }}</td>
+              <td class="text-center">{{ entry.total_bets }}</td>
             </tr>
           </tbody>
         </v-table>

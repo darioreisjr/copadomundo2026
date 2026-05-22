@@ -78,7 +78,7 @@ O painel administrativo oferece:
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo: primeira vez gratuita; após salvar, a tela exibe o placar em modo somente leitura — atualizar um palpite existente custa 30 selos (confirmação via diálogo antes do débito); placar centralizado nos campos de entrada; feedback de sucesso via toast no canto inferior direito
 - **Especialista IA:** botão "Chamar Especialista" na tela de palpite custa **20 selos** e consulta o histórico real de confrontos entre as duas seleções em Copas do Mundo (via OpenFootball, 1930–2022), passando os dados verificados ao Google Gemini para gerar análise estatística com vitórias, empates, gols, probabilidades de cada resultado e sugestão de placar; a análise é gerada **uma única vez** e armazenada em cache no banco (tabela `match_analyses`) — usuários subsequentes reutilizam o resultado sem nova chamada à IA; o usuário que já pagou tem a análise carregada automaticamente ao retornar à página e o botão fica desabilitado (consulta registrada em `user_seals` com `event_key = 'ai_expert_called'`)
-- Ranking global com medalhas para o top 3
+- Ranking global com medalhas para o top 3; nomes de todos os participantes exibidos corretamente (policy RLS de leitura pública de perfis)
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
   - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone; e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
   - **Segurança:** campo senha atual obrigatório + nova senha + confirmação; botão habilitado somente quando todos os requisitos estão satisfeitos; redireciona para o Dashboard com toast de confirmação após troca bem-sucedida
@@ -488,10 +488,12 @@ Clique em **Confirmar e sincronizar** para aplicar apenas as mudanças necessár
 - Clique em **Novo Jogo** para adicionar manualmente
 - Campos: Time A/B, Bandeira A/B (emoji), Data, Fase, Grupo
 
-### Aba 3 — Lançar Resultados
+### Aba 3 — Inserir Resultados
 - Lista jogos com status `closed` ou `live`
-- Insira o placar final e clique em **Salvar**
-- Pontos de todos os palpites são recalculados automaticamente
+- Campos de placar iniciam vazios (placeholder "0") para facilitar a digitação — valores entre 0 e 99
+- Validação antes de salvar: ambos os placares devem ser preenchidos
+- Colunas de placar e ação centralizadas na tabela
+- Clique em **Salvar** para aplicar o resultado; pontos de todos os palpites são recalculados automaticamente
 
 ### Avatares — `/admin/avatares`
 Gerenciamento do catálogo de avatares disponíveis para os usuários:

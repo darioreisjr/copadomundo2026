@@ -271,30 +271,34 @@
               <tr>
                 <th>Jogo</th>
                 <th>Data</th>
-                <th>Placar A</th>
-                <th>Placar B</th>
-                <th>Ação</th>
+                <th class="text-center" style="width:90px">Placar A</th>
+                <th class="text-center" style="width:90px">Placar B</th>
+                <th class="text-center">Ação</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="game in pendingResults" :key="game.id">
                 <td>{{ game.team_a }} x {{ game.team_b }}</td>
                 <td>{{ formatDate(game.match_date) }}</td>
-                <td style="width:80px">
+                <td class="text-center" style="width:90px">
                   <v-text-field
                     v-model.number="resultInputs[game.id].a"
-                    type="number" min="0"
+                    type="number" min="0" max="99"
+                    placeholder="0"
                     density="compact" variant="outlined" hide-details
+                    style="min-width:70px"
                   />
                 </td>
-                <td style="width:80px">
+                <td class="text-center" style="width:90px">
                   <v-text-field
                     v-model.number="resultInputs[game.id].b"
-                    type="number" min="0"
+                    type="number" min="0" max="99"
+                    placeholder="0"
                     density="compact" variant="outlined" hide-details
+                    style="min-width:70px"
                   />
                 </td>
-                <td>
+                <td class="text-center">
                   <v-btn
                     color="green-darken-3"
                     size="small"
@@ -542,7 +546,7 @@ const pendingResults = computed(() =>
 const resultInputs = computed(() => {
   const map = {}
   pendingResults.value.forEach(g => {
-    if (!map[g.id]) map[g.id] = reactive({ a: 0, b: 0 })
+    if (!map[g.id]) map[g.id] = reactive({ a: null, b: null })
   })
   return map
 })
@@ -550,9 +554,14 @@ const resultInputs = computed(() => {
 const savingResult = reactive({})
 
 async function saveResult(game) {
+  const inp = resultInputs.value[game.id]
+  if (inp.a === null || inp.b === null || inp.a < 0 || inp.b < 0) {
+    alert('Preencha os dois placares antes de salvar.')
+    return
+  }
   savingResult[game.id] = true
   try {
-    await gamesStore.setResult(game.id, resultInputs.value[game.id].a, resultInputs.value[game.id].b)
+    await gamesStore.setResult(game.id, inp.a, inp.b)
   } finally {
     savingResult[game.id] = false
   }
