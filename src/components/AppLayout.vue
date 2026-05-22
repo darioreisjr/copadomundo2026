@@ -111,7 +111,10 @@
             </span>
           </v-avatar>
           <span class="text-white font-weight-medium text-body-1 text-center">
-            {{ auth.profile?.name || 'Usuário' }}
+            {{ auth.profile?.nome_fantasia || auth.profile?.name || 'Usuário' }}
+          </span>
+          <span v-if="auth.profile?.username" class="text-caption text-center" style="color:rgba(255,255,255,.6)">
+            @{{ auth.profile.username }}
           </span>
           <span v-if="auth.profile?.role === 'admin'" class="text-caption mt-1" style="color:#f5c542">Admin</span>
         </div>
@@ -186,7 +189,10 @@
               </span>
             </v-avatar>
             <span class="text-white font-weight-medium text-h6 text-center">
-              {{ auth.profile?.name || 'Usuário' }}
+              {{ auth.profile?.nome_fantasia || auth.profile?.name || 'Usuário' }}
+            </span>
+            <span v-if="auth.profile?.username" class="text-caption text-center" style="color:rgba(255,255,255,.6)">
+              @{{ auth.profile.username }}
             </span>
             <span v-if="auth.profile?.role === 'admin'" class="text-caption mt-1" style="color:#f5c542">Admin</span>
           </div>

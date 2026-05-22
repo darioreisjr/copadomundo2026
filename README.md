@@ -80,7 +80,7 @@ O painel administrativo oferece:
 - **Especialista IA:** botão "Chamar Especialista" na tela de palpite custa **20 selos** e consulta o histórico real de confrontos entre as duas seleções em Copas do Mundo (via OpenFootball, 1930–2022), passando os dados verificados ao Google Gemini para gerar análise estatística com vitórias, empates, gols, probabilidades de cada resultado e sugestão de placar; a análise é gerada **uma única vez** e armazenada em cache no banco (tabela `match_analyses`) — usuários subsequentes reutilizam o resultado sem nova chamada à IA; o usuário que já pagou tem a análise carregada automaticamente ao retornar à página e o botão fica desabilitado (consulta registrada em `user_seals` com `event_key = 'ai_expert_called'`)
 - Ranking global com medalhas para o top 3; nomes de todos os participantes exibidos corretamente (policy RLS de leitura pública de perfis); **responsivo no mobile**: exibe apenas Posição, Nome e Pontos na tabela — tocar em qualquer linha abre um modal com todos os detalhes (Placares exatos, Vencedor, Empates, Palpites); legenda "Entenda a pontuação" abaixo dos critérios de desempate explica cada coluna
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
-  - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone; e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
+  - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone, **username** (identificador único com `@`, validação de formato e disponibilidade em tempo real) e **nome fantasia** (apelido de exibição no bolão); e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
   - **Segurança:** campo senha atual obrigatório + nova senha + confirmação; botão habilitado somente quando todos os requisitos estão satisfeitos; redireciona para o Dashboard com toast de confirmação após troca bem-sucedida
   - **Preferências:** toggles de notificações por e-mail e por ranking com salvamento automático ao alternar
   - **Excluir Conta:** zona de perigo com checkbox de confirmação + diálogo de confirmação final; exclusão em cascata via RPC SQL
@@ -182,6 +182,8 @@ Extensão de `auth.users`. Criada automaticamente via trigger no signup.
 | birth_date | date | Data de nascimento (opcional, validação de maioridade ≥ 18 anos) |
 | phone | text | Telefone (opcional) |
 | avatar_url | text | URL do avatar escolhido pelo usuário (selecionado via catálogo de avatares) |
+| username | text | Identificador único com `@` (opcional, `[a-z0-9_]`, 3–20 chars) |
+| nome_fantasia | text | Nome de exibição / apelido (opcional, máx. 50 chars) |
 | total_seals | int | Total acumulado de selos do usuário (padrão: 0) |
 | notifications_email | boolean | Preferência de notificações por e-mail (padrão: true) |
 | notifications_ranking | boolean | Preferência de notificações de ranking (padrão: true) |

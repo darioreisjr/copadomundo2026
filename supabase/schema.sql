@@ -25,6 +25,13 @@ alter table public.profiles add column if not exists phone                 text;
 alter table public.profiles add column if not exists avatar_url            text;
 alter table public.profiles add column if not exists notifications_email   boolean not null default true;
 alter table public.profiles add column if not exists notifications_ranking boolean not null default true;
+alter table public.profiles add column if not exists username              text unique;
+alter table public.profiles add column if not exists nome_fantasia         text;
+
+-- Constraint de formato do username: letras minúsculas, números e underscores, 3-20 chars
+alter table public.profiles drop constraint if exists profiles_username_format;
+alter table public.profiles add constraint profiles_username_format
+  check (username is null or username ~ '^[a-z0-9_]{3,20}$');
 
 alter table public.profiles enable row level security;
 

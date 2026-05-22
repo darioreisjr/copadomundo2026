@@ -123,13 +123,57 @@
                   :rules="[phoneRule]"
                 />
               </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="profileForm.username"
+                  label="Username (opcional)"
+                  prepend-inner-icon="mdi-at"
+                  prefix="@"
+                  placeholder="seunome"
+                  :append-inner-icon="usernameAppendIcon"
+                  :base-color="usernameStatus === 'taken' ? 'error' : undefined"
+                  :color="usernameStatus === 'taken' ? 'error' : 'green-darken-3'"
+                  hint="3-20 chars: letras minúsculas, números e _"
+                  persistent-hint
+                  :rules="[
+                    v => !v || /^[a-z0-9_]{3,20}$/.test(v.trim()) || 'Apenas letras minúsculas, números e _ (3-20 chars)',
+                  ]"
+                  @input="profileForm.username = profileForm.username?.toLowerCase()"
+                >
+                  <template #append-inner>
+                    <v-progress-circular
+                      v-if="usernameStatus === 'checking'"
+                      size="18"
+                      width="2"
+                      indeterminate
+                      color="grey"
+                    />
+                    <v-icon
+                      v-else-if="usernameAppendIcon"
+                      :icon="usernameAppendIcon"
+                      :color="usernameAppendColor"
+                    />
+                  </template>
+                </v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="profileForm.nome_fantasia"
+                  label="Nome fantasia / apelido (opcional)"
+                  prepend-inner-icon="mdi-tag-outline"
+                  placeholder="Ex: Rei do Bolão"
+                  hint="Como você quer ser chamado no bolão"
+                  persistent-hint
+                  :rules="[v => !v || v.length <= 50 || 'Máximo 50 caracteres']"
+                />
+              </v-col>
             </v-row>
 
             <v-btn
               type="submit"
               color="green-darken-3"
               :loading="profileLoading"
-              :disabled="!profileDirty"
+              :disabled="!profileDirty || usernameStatus === 'taken' || usernameStatus === 'checking'"
               prepend-icon="mdi-content-save"
               class="mt-2"
             >
@@ -349,7 +393,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, inject } from 'vue'
+import { ref, reactive, onMounted, computed, watch, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore }    from '@/stores/auth'
@@ -373,15 +417,49 @@ const profileForm = reactive({
   name: '',
   birth_date: '',
   phone: '',
+  username: '',
+  nome_fantasia: '',
 })
 
-const profileSnapshot = reactive({ name: '', birth_date: '', phone: '' })
+const profileSnapshot = reactive({ name: '', birth_date: '', phone: '', username: '', nome_fantasia: '' })
 
 const profileDirty = computed(() =>
-  profileForm.name       !== profileSnapshot.name       ||
-  profileForm.birth_date !== profileSnapshot.birth_date ||
-  (profileForm.phone || '') !== (profileSnapshot.phone || '')
+  profileForm.name          !== profileSnapshot.name          ||
+  profileForm.birth_date    !== profileSnapshot.birth_date    ||
+  (profileForm.phone || '') !== (profileSnapshot.phone || '') ||
+  (profileForm.username || '')       !== (profileSnapshot.username || '')       ||
+  (profileForm.nome_fantasia || '')  !== (profileSnapshot.nome_fantasia || '')
 )
+
+// Validação assíncrona de disponibilidade do username
+const usernameStatus = ref(null) // null | 'checking' | 'available' | 'taken' | 'invalid'
+let usernameDebounce = null
+
+watch(() => profileForm.username, (val) => {
+  clearTimeout(usernameDebounce)
+  const trimmed = val?.trim() ?? ''
+  if (!trimmed) { usernameStatus.value = null; return }
+  if (!/^[a-z0-9_]{3,20}$/.test(trimmed)) { usernameStatus.value = 'invalid'; return }
+  if (trimmed === profileSnapshot.username) { usernameStatus.value = 'available'; return }
+  usernameStatus.value = 'checking'
+  usernameDebounce = setTimeout(async () => {
+    const available = await auth.checkUsernameAvailable(trimmed)
+    usernameStatus.value = available ? 'available' : 'taken'
+  }, 500)
+})
+
+const usernameAppendIcon = computed(() => {
+  if (usernameStatus.value === 'available') return 'mdi-check-circle'
+  if (usernameStatus.value === 'taken')     return 'mdi-close-circle'
+  if (usernameStatus.value === 'checking')  return 'mdi-loading'
+  return undefined
+})
+
+const usernameAppendColor = computed(() => {
+  if (usernameStatus.value === 'available') return 'green-darken-3'
+  if (usernameStatus.value === 'taken')     return 'error'
+  return 'grey'
+})
 
 function birthDateRule(v) {
   if (!v) return true
@@ -401,19 +479,35 @@ function phoneRule(v) {
 async function saveProfile() {
   const { valid } = await profileFormRef.value.validate()
   if (!valid) return
+  if (usernameStatus.value === 'taken') {
+    toast.notify('Este @username já está em uso.', 'error')
+    return
+  }
+  if (usernameStatus.value === 'invalid') {
+    toast.notify('Username inválido: use apenas letras minúsculas, números e underscore (3-20 chars).', 'error')
+    return
+  }
   profileLoading.value = true
   try {
     await auth.updateProfile({
       name: profileForm.name,
       birth_date: profileForm.birth_date || null,
       phone: profileForm.phone || null,
+      username: profileForm.username?.trim() || null,
+      nome_fantasia: profileForm.nome_fantasia?.trim() || null,
     })
     toast.notify('Dados atualizados com sucesso!')
-    profileSnapshot.name       = profileForm.name
-    profileSnapshot.birth_date = profileForm.birth_date
-    profileSnapshot.phone      = profileForm.phone || ''
+    profileSnapshot.name          = profileForm.name
+    profileSnapshot.birth_date    = profileForm.birth_date
+    profileSnapshot.phone         = profileForm.phone || ''
+    profileSnapshot.username      = profileForm.username || ''
+    profileSnapshot.nome_fantasia = profileForm.nome_fantasia || ''
   } catch (e) {
-    toast.notify(e.message || 'Erro ao salvar dados.', 'error')
+    if (e.code === '23505') {
+      toast.notify('Este @username já está em uso.', 'error')
+    } else {
+      toast.notify(e.message || 'Erro ao salvar dados.', 'error')
+    }
   } finally {
     profileLoading.value = false
   }
@@ -508,15 +602,24 @@ async function handleDeleteAccount() {
   }
 }
 
-// Preenche formulário e snapshot com dados atuais do perfil
+function syncProfileForm() {
+  profileForm.name          = auth.profile?.name          ?? ''
+  profileForm.birth_date    = auth.profile?.birth_date    ?? ''
+  profileForm.phone         = auth.profile?.phone         ?? ''
+  profileForm.username      = auth.profile?.username      ?? ''
+  profileForm.nome_fantasia = auth.profile?.nome_fantasia ?? ''
+  profileSnapshot.name          = profileForm.name
+  profileSnapshot.birth_date    = profileForm.birth_date
+  profileSnapshot.phone         = profileForm.phone
+  profileSnapshot.username      = profileForm.username
+  profileSnapshot.nome_fantasia = profileForm.nome_fantasia
+}
+
 onMounted(() => {
-  profileForm.name       = auth.profile?.name       ?? ''
-  profileForm.birth_date = auth.profile?.birth_date ?? ''
-  profileForm.phone      = auth.profile?.phone      ?? ''
-  profileSnapshot.name       = profileForm.name
-  profileSnapshot.birth_date = profileForm.birth_date
-  profileSnapshot.phone      = profileForm.phone
+  syncProfileForm()
   prefsForm.notifications_email   = auth.profile?.notifications_email   ?? true
   prefsForm.notifications_ranking = auth.profile?.notifications_ranking ?? true
 })
+
+watch(() => auth.profile, syncProfileForm)
 </script>

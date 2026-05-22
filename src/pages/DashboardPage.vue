@@ -21,7 +21,14 @@
               {{ (auth.profile?.name || 'U')[0].toUpperCase() }}
             </span>
           </v-avatar>
-          <div class="text-subtitle-1 font-weight-bold">{{ auth.profile?.name }}</div>
+          <div>
+            <div class="text-subtitle-1 font-weight-bold">
+              {{ auth.profile?.nome_fantasia || auth.profile?.name }}
+            </div>
+            <div v-if="auth.profile?.username" class="text-caption" style="opacity:.7">
+              @{{ auth.profile.username }}
+            </div>
+          </div>
         </div>
 
         <!-- Linha 2 (mobile) / stats à direita (desktop) -->

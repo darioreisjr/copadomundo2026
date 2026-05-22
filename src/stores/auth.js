@@ -101,11 +101,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function checkUsernameAvailable(username) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username)
+      .neq('id', user.value.id)
+      .maybeSingle()
+    return data === null
+  }
+
   async function deleteAccount() {
     const { error } = await supabase.rpc('delete_user')
     if (error) throw error
     await logout()
   }
 
-  return { user, profile, initialized, intentionalLogout, init, register, login, logout, fetchProfile, resendConfirmation, updateProfile, updatePassword, deleteAccount }
+  return { user, profile, initialized, intentionalLogout, init, register, login, logout, fetchProfile, resendConfirmation, updateProfile, updatePassword, checkUsernameAvailable, deleteAccount }
 })
