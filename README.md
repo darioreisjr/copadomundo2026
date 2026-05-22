@@ -77,6 +77,7 @@ O painel administrativo oferece:
 - **Desbloqueio de avatares por selos:** avatares com `seal_cost > 0` requerem gasto de selos para serem usados; a RPC `unlock_avatar` é atômica (debita selos e registra desbloqueio em única transação)
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo: primeira vez gratuita; após salvar, a tela exibe o placar em modo somente leitura — atualizar um palpite existente custa 30 selos (confirmação via diálogo antes do débito); placar centralizado nos campos de entrada; feedback de sucesso via toast no canto inferior direito
+- **Especialista IA:** botão "Chamar Especialista" na tela de palpite consulta o histórico real de confrontos entre as duas seleções em Copas do Mundo (via OpenFootball, 1930–2022) e passa os dados verificados ao Google Gemini, que gera análise estatística com vitórias, empates, gols, probabilidades de cada resultado e sugestão de placar
 - Ranking global com medalhas para o top 3
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
   - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone; e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
@@ -128,7 +129,8 @@ copa-do-mundo/
     ├── lib/
     │   ├── supabase.js         # Cliente Supabase
     │   ├── footballApi.js      # Busca jogos oficiais da Copa 2026 via OpenFootball
-    │   └── gemini.js           # Tradução de nomes e emojis de bandeiras via Gemini
+    │   ├── openfootball.js     # Busca histórico real de confrontos entre seleções (Copas do Mundo 1930–2022)
+    │   └── gemini.js           # Tradução de nomes/bandeiras e análise estatística de confrontos via Gemini
     ├── components/
     │   ├── AppLayout.vue       # Layout principal: menu lateral (desktop), bottom nav com ícones (mobile), drawer fullscreen do hambúrguer (mobile), footer e toast global
     │   ├── GameCard.vue        # Card reutilizável de jogo com palpite e pontos

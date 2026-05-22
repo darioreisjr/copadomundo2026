@@ -2,9 +2,21 @@
   <AppLayout>
     <v-row justify="center">
       <v-col cols="12" sm="10" md="6">
-        <v-btn :to="{ name: 'Games' }" variant="text" prepend-icon="mdi-arrow-left" class="mb-4">
-          Voltar
-        </v-btn>
+        <div class="d-flex justify-space-between align-center mb-4">
+          <v-btn :to="{ name: 'Games' }" variant="text" prepend-icon="mdi-arrow-left">
+            Voltar
+          </v-btn>
+          <v-btn
+            v-if="game"
+            variant="outlined"
+            color="green-darken-3"
+            prepend-icon="mdi-robot-excited"
+            :loading="loadingAnalysis"
+            @click="callExpert"
+          >
+            Chamar Especialista
+          </v-btn>
+        </div>
 
         <v-progress-linear v-if="loading" indeterminate color="green-darken-3" class="mb-4" />
 
@@ -132,6 +144,61 @@
               </template>
             </template>
           </v-card>
+          <v-expand-transition>
+            <v-card v-if="analysis" class="mt-4 pa-5" elevation="2" color="surface" border>
+              <div class="d-flex align-center ga-2 mb-4">
+                <v-icon color="purple-darken-2">mdi-robot-excited</v-icon>
+                <span class="text-subtitle-1 font-weight-bold text-purple-darken-2">Análise do Especialista IA</span>
+              </div>
+
+              <div class="text-caption text-medium-emphasis mb-1">Histórico geral</div>
+              <v-row dense class="mb-3">
+                <v-col cols="4" class="text-center">
+                  <div class="text-h6 font-weight-bold text-green-darken-2">{{ analysis.vitorias_a ?? '?' }}</div>
+                  <div class="text-caption">Vitórias {{ game.flag_a }} {{ game.team_a }}</div>
+                </v-col>
+                <v-col cols="4" class="text-center">
+                  <div class="text-h6 font-weight-bold">{{ analysis.empates ?? '?' }}</div>
+                  <div class="text-caption">Empates</div>
+                </v-col>
+                <v-col cols="4" class="text-center">
+                  <div class="text-h6 font-weight-bold text-blue-darken-2">{{ analysis.vitorias_b ?? '?' }}</div>
+                  <div class="text-caption">Vitórias {{ game.flag_b }} {{ game.team_b }}</div>
+                </v-col>
+              </v-row>
+
+              <div class="text-caption text-center text-medium-emphasis mb-3">
+                Total: {{ analysis.total_jogos ?? '?' }} jogos · {{ analysis.gols_a ?? '?' }} gols × {{ analysis.gols_b ?? '?' }} gols
+              </div>
+
+              <v-alert density="compact" variant="tonal" color="amber-darken-2" class="mb-4" icon="mdi-trophy">
+                <strong>Última Copa do Mundo:</strong> {{ analysis.ultima_copa }}
+              </v-alert>
+
+              <div class="text-caption text-medium-emphasis mb-2">Probabilidades para este jogo</div>
+              <div class="d-flex align-center ga-2 mb-1">
+                <span class="text-caption" style="min-width:70px">{{ game.team_a }}</span>
+                <v-progress-linear :model-value="analysis.probabilidade_a" color="green-darken-2" height="14" rounded />
+                <span class="text-caption font-weight-bold" style="min-width:34px">{{ analysis.probabilidade_a }}%</span>
+              </div>
+              <div class="d-flex align-center ga-2 mb-1">
+                <span class="text-caption" style="min-width:70px">Empate</span>
+                <v-progress-linear :model-value="analysis.probabilidade_empate" color="grey-darken-1" height="14" rounded />
+                <span class="text-caption font-weight-bold" style="min-width:34px">{{ analysis.probabilidade_empate }}%</span>
+              </div>
+              <div class="d-flex align-center ga-2 mb-4">
+                <span class="text-caption" style="min-width:70px">{{ game.team_b }}</span>
+                <v-progress-linear :model-value="analysis.probabilidade_b" color="blue-darken-2" height="14" rounded />
+                <span class="text-caption font-weight-bold" style="min-width:34px">{{ analysis.probabilidade_b }}%</span>
+              </div>
+
+              <v-chip color="purple-darken-2" variant="flat" class="mb-4" prepend-icon="mdi-lightbulb">
+                Placar sugerido: {{ analysis.placar_sugerido }}
+              </v-chip>
+
+              <p class="text-body-2 text-medium-emphasis">{{ analysis.analise }}</p>
+            </v-card>
+          </v-expand-transition>
         </template>
       </v-col>
     </v-row>
@@ -163,6 +230,7 @@ import { useGamesStore } from '@/stores/games'
 import { useBetsStore } from '@/stores/bets'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { analyzeMatch } from '@/lib/gemini'
 
 const route      = useRoute()
 const gamesStore = useGamesStore()
@@ -180,6 +248,8 @@ const error             = ref('')
 const formRef           = ref(null)
 const showConfirmDialog = ref(false)
 const editingMode       = ref(false)
+const analysis          = ref(null)
+const loadingAnalysis   = ref(false)
 
 const statusMap = {
   upcoming: { label: 'Em breve',   color: 'grey' },
@@ -206,6 +276,19 @@ function hitLabel(type) {
 function formatDate(dt) {
   if (!dt) return ''
   return new Date(dt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+async function callExpert() {
+  if (loadingAnalysis.value) return
+  analysis.value = null
+  loadingAnalysis.value = true
+  try {
+    analysis.value = await analyzeMatch(game.value.team_a, game.value.team_b)
+  } catch {
+    toast.notify('Não foi possível carregar a análise. Tente novamente.', 'error')
+  } finally {
+    loadingAnalysis.value = false
+  }
 }
 
 function requestUpdate() {
