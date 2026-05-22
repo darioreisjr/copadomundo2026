@@ -31,6 +31,17 @@ export const useBetsStore = defineStore('bets', () => {
     return data
   }
 
+  // Debita 30 selos para liberar edição de palpite existente
+  async function deductSealsForUpdate() {
+    const auth = useAuthStore()
+    const { error } = await supabase
+      .from('profiles')
+      .update({ total_seals: (auth.profile?.total_seals ?? 0) - 30 })
+      .eq('id', auth.user.id)
+    if (error) throw error
+    await auth.fetchProfile()
+  }
+
   async function saveBet(gameId, scoreA, scoreB) {
     const auth = useAuthStore()
     const existing = await getBetForGame(gameId)
@@ -55,5 +66,5 @@ export const useBetsStore = defineStore('bets', () => {
     return bets.value.reduce((sum, b) => sum + (b.points ?? 0), 0)
   }
 
-  return { bets, loading, fetchMyBets, getBetForGame, saveBet, totalPoints }
+  return { bets, loading, fetchMyBets, getBetForGame, deductSealsForUpdate, saveBet, totalPoints }
 })

@@ -341,7 +341,7 @@
 
     <v-snackbar
       v-model="toast.show"
-      location="top right"
+      location="bottom right"
       :color="toast.color"
       :timeout="4000"
       rounded="lg"

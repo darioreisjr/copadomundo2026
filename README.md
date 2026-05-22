@@ -76,7 +76,7 @@ O painel administrativo oferece:
 - **Seletor de avatar redesenhado:** modal de dois painéis — esquerda exibe o catálogo em grade 3×N (avatares desbloqueados sempre primeiro, bloqueados com cadeado e custo em selos); direita exibe preview em tela cheia do avatar selecionado; clicar em avatar bloqueado abre diálogo de confirmação de desbloqueio com verificação de saldo
 - **Desbloqueio de avatares por selos:** avatares com `seal_cost > 0` requerem gasto de selos para serem usados; a RPC `unlock_avatar` é atômica (debita selos e registra desbloqueio em única transação)
 - Listagem de jogos com filtros por status e fase
-- Palpite de placar por jogo (criação e edição enquanto a aposta está aberta)
+- Palpite de placar por jogo: primeira vez gratuita; após salvar, a tela exibe o placar em modo somente leitura — atualizar um palpite existente custa 30 selos (confirmação via diálogo antes do débito); placar centralizado nos campos de entrada; feedback de sucesso via toast no canto inferior direito
 - Ranking global com medalhas para o top 3
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
   - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone; e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
