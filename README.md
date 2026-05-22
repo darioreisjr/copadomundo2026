@@ -78,6 +78,7 @@ O painel administrativo oferece:
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo: primeira vez gratuita; após salvar, a tela exibe o placar em modo somente leitura — atualizar um palpite existente custa 30 selos (confirmação via diálogo antes do débito); placar centralizado nos campos de entrada; feedback de sucesso via toast no canto inferior direito
 - **Especialista IA:** botão "Chamar Especialista" na tela de palpite custa **20 selos** e consulta o histórico real de confrontos entre as duas seleções em Copas do Mundo (via OpenFootball, 1930–2022), passando os dados verificados ao Google Gemini para gerar análise estatística com vitórias, empates, gols, probabilidades de cada resultado e sugestão de placar; a análise é gerada **uma única vez** e armazenada em cache no banco (tabela `match_analyses`) — usuários subsequentes reutilizam o resultado sem nova chamada à IA; o usuário que já pagou tem a análise carregada automaticamente ao retornar à página e o botão fica desabilitado (consulta registrada em `user_seals` com `event_key = 'ai_expert_called'`)
+- **Grupos privados e públicos:** crie grupos com nome, descrição, imagem (URL ou upload) e privacidade (privado/público); convide participantes por `@username`; convites recebidos aparecem em "Grupos" com opção de aceitar ou recusar; ranking privado do grupo calculado automaticamente a partir dos palpites reais dos membros; busca de grupos públicos por nome e descoberta de grupo aleatório em "Grupos"; página "Meus Grupos" lista os grupos criados pelo próprio usuário com dialog de criação integrado
 - Ranking global com medalhas para o top 3; nomes de todos os participantes exibidos corretamente (policy RLS de leitura pública de perfis); **responsivo no mobile**: exibe apenas Posição, Nome e Pontos na tabela — tocar em qualquer linha abre um modal com todos os detalhes (Placares exatos, Vencedor, Empates, Palpites); legenda "Entenda a pontuação" abaixo dos critérios de desempate explica cada coluna
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
   - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone, **username** (identificador único com `@`, validação de formato e disponibilidade em tempo real) e **nome fantasia** (apelido de exibição no bolão); e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
@@ -109,7 +110,8 @@ copa-do-mundo/
 │   ├── avatars-schema.sql          # Schema isolado: tabela avatars, RLS, bucket de storage
 │   ├── coins-schema.sql            # Schema de selos: tabela seal_rewards, RLS e seed de eventos
 │   ├── seals-awards-schema.sql     # Schema de distribuição: tabela user_seals, coluna total_seals, RPCs de concessão
-│   └── match-analyses-schema.sql   # Cache de análises do Especialista IA: tabela match_analyses, RLS
+│   ├── match-analyses-schema.sql   # Cache de análises do Especialista IA: tabela match_analyses, RLS
+│   └── grupos-schema.sql           # Grupos privados/públicos: tabelas groups e group_members, RLS, funções helper, bucket group-images
 ├── public/
 │   ├── favicon.svg
 │   └── icons.svg
@@ -117,13 +119,14 @@ copa-do-mundo/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
     ├── App.vue                 # Root component com transição page-fade, provide do seletor de avatar e modal global de selos
     ├── router/
-    │   └── index.js            # 16 rotas com guards de autenticação e papel
+    │   └── index.js            # 19 rotas com guards de autenticação e papel
     ├── stores/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
     │   ├── avatars.js          # CRUD de avatares + upload para Supabase Storage
     │   ├── games.js            # CRUD de jogos, lançamento de resultados
     │   ├── bets.js             # Palpites, débito de selos e verificação de pagamento do especialista
     │   ├── ranking.js          # Leaderboard global
+    │   ├── groups.js           # Grupos privados/públicos: CRUD, convites, membros, ranking de grupo
     │   ├── sealRewards.js      # CRUD dos eventos de selos (somente admin)
     │   ├── seals.js            # Concessão de selos ao usuário: baú diário, estado do modal
     │   └── toast.js            # Notificações globais (snackbar)
@@ -152,6 +155,9 @@ copa-do-mundo/
         ├── GamesPage.vue
         ├── BetPage.vue
         ├── RankingPage.vue
+        ├── MeusGruposPage.vue      # Grupos: listagem dos grupos em que participo + convites recebidos
+        ├── CriarGrupoPage.vue      # Meus Grupos / Criar Grupo: gerencia grupos próprios e abre dialog de criação
+        ├── GrupoDetailPage.vue     # Detalhe do grupo: ranking privado e membros
         ├── AccountPage.vue         # Minha Conta: dados pessoais, segurança, preferências, exclusão
         ├── AdminPage.vue
         ├── AdminAvatarsPage.vue    # Gerenciamento de avatares (somente admin)
@@ -168,6 +174,7 @@ Schema de avatares em [supabase/avatars-schema.sql](supabase/avatars-schema.sql)
 Schema de eventos de selos em [supabase/coins-schema.sql](supabase/coins-schema.sql) — aplicar após o schema principal.
 Schema de distribuição de selos em [supabase/seals-awards-schema.sql](supabase/seals-awards-schema.sql) — aplicar após coins-schema.sql.
 Schema de cache do Especialista IA em [supabase/match-analyses-schema.sql](supabase/match-analyses-schema.sql) — aplicar após seals-awards-schema.sql.
+Schema de grupos privados em [supabase/grupos-schema.sql](supabase/grupos-schema.sql) — aplicar após o schema principal.
 
 ### Tabelas
 
@@ -315,6 +322,37 @@ Cache das análises do Especialista IA, compartilhado entre todos os usuários. 
 > RLS: qualquer usuário autenticado pode ler; inserção permitida a usuários autenticados (PK impede duplicatas).
 > A análise é gerada uma única vez pelo primeiro usuário a pagar o especialista e reutilizada por todos os demais.
 
+#### `groups`
+Grupos privados ou públicos de ranking. Aplicado via [supabase/grupos-schema.sql](supabase/grupos-schema.sql).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| id | uuid | PK |
+| name | text | Nome do grupo |
+| owner_id | uuid | FK → profiles (criador) |
+| description | text | Descrição opcional |
+| is_public | boolean | Visível para busca pública (padrão: false) |
+| image_url | text | URL da imagem do grupo (opcional) |
+| created_at | timestamptz | — |
+
+> RLS: dono e membros leem; grupos públicos são visíveis a qualquer autenticado; somente o dono gerencia.
+> Storage: bucket público `group-images` para upload de imagens de grupo.
+
+#### `group_members`
+Membros e convites pendentes de cada grupo.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| id | uuid | PK |
+| group_id | uuid | FK → groups |
+| user_id | uuid | FK → profiles |
+| status | text | `pending` \| `active` |
+| invited_by | uuid | FK → profiles (quem convidou) |
+| created_at | timestamptz | — |
+
+> Unique constraint em `(group_id, user_id)`.
+> RLS usa funções `is_group_owner` e `is_group_member` com `security definer` para evitar recursão infinita entre as policies das duas tabelas.
+
 ### Funções SQL principais
 
 | Função | Descrição |
@@ -329,6 +367,8 @@ Cache das análises do Especialista IA, compartilhado entre todos os usuários. 
 | `handle_new_user()` | Trigger: cria perfil automaticamente no signup |
 | `set_bet_window()` | Trigger: define janela de apostas ao criar/atualizar jogo |
 | `delete_user()` | RPC com SECURITY DEFINER: exclui o usuário autenticado de `auth.users` (cascade apaga profiles, bets e ranking) |
+| `is_group_owner(group_id, user_id)` | Retorna boolean — verifica se o usuário é dono do grupo (security definer, usado nas RLS policies) |
+| `is_group_member(group_id, user_id)` | Retorna boolean — verifica se o usuário é membro do grupo (security definer, usado nas RLS policies) |
 
 ---
 
@@ -434,6 +474,9 @@ npm run preview  # Preview do build local
 | `/games` | GamesPage | Autenticado |
 | `/games/:id/bet` | BetPage | Autenticado |
 | `/ranking` | RankingPage | Autenticado |
+| `/grupos` | MeusGruposPage | Autenticado |
+| `/grupos/:id` | GrupoDetailPage | Autenticado |
+| `/meus-grupos` | CriarGrupoPage | Autenticado |
 | `/minha-conta` | AccountPage | Autenticado |
 | `/admin` | AdminPage | Admin apenas |
 | `/admin/avatares` | AdminAvatarsPage | Admin apenas |
@@ -455,6 +498,9 @@ npm run preview  # Preview do build local
 | Lançar resultados | ❌ | ✅ |
 | Acessar painel admin | ❌ | ✅ |
 | Ver palpites de outros | ❌ | ✅ |
+| Criar grupos e convidar membros | ✅ | ✅ |
+| Aceitar/recusar convites de grupo | ✅ | ✅ |
+| Ver ranking privado do grupo | ✅ | ✅ |
 | Desbloquear avatares com selos | ✅ | ✅ |
 | Gerenciar avatares do catálogo | ❌ | ✅ |
 | Configurar selos da copa | ❌ | ✅ |

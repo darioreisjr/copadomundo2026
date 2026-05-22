@@ -39,6 +39,18 @@
           :to="{ name: 'Ranking' }"
           rounded="lg"
         />
+        <v-list-item
+          prepend-icon="mdi-account-group"
+          title="Grupos"
+          :to="{ name: 'MeusGrupos' }"
+          rounded="lg"
+        />
+        <v-list-item
+          prepend-icon="mdi-account-group-outline"
+          title="Meus Grupos"
+          :to="{ name: 'CriarGrupo' }"
+          rounded="lg"
+        />
       </v-list>
 
       <template v-if="auth.profile?.role === 'admin'">
@@ -242,9 +254,11 @@
       grow
       style="position:fixed;bottom:0;left:0;right:0;z-index:1000"
     >
-      <v-btn :to="{ name: 'Dashboard' }" icon="mdi-view-dashboard" />
-      <v-btn :to="{ name: 'Games' }"     icon="mdi-soccer"         />
-      <v-btn :to="{ name: 'Ranking' }"   icon="mdi-podium"         />
+      <v-btn :to="{ name: 'Dashboard' }"  icon="mdi-view-dashboard"      />
+      <v-btn :to="{ name: 'Games' }"      icon="mdi-soccer"              />
+      <v-btn :to="{ name: 'Ranking' }"    icon="mdi-podium"              />
+      <v-btn :to="{ name: 'MeusGrupos' }" icon="mdi-account-group"       />
+      <v-btn :to="{ name: 'CriarGrupo' }" icon="mdi-account-group-outline" />
       <v-menu
         v-if="auth.profile?.role === 'admin'"
         v-model="adminMenu"
