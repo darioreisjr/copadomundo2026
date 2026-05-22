@@ -3,47 +3,13 @@
     <v-progress-linear v-if="loading" indeterminate color="green-darken-3" class="mb-4" />
 
     <template v-if="group">
-      <!-- Cabeçalho -->
-      <div class="mb-4">
-        <div class="d-flex align-start justify-space-between gap-4 mb-3 flex-wrap">
-          <div class="d-flex align-start gap-4">
-            <v-btn
-              icon="mdi-arrow-left"
-              variant="text"
-              size="small"
-              :to="{ name: 'MeusGrupos' }"
-            />
-            <!-- Imagem do grupo -->
-            <v-avatar
-              v-if="group.image_url"
-              size="72"
-              rounded="lg"
-            >
-              <v-img :src="group.image_url" cover />
-            </v-avatar>
-            <v-avatar v-else size="72" color="green-darken-3" rounded="lg">
-              <v-icon icon="mdi-account-group" color="white" />
-            </v-avatar>
-
-            <div class="px-3">
-              <span class="text-h5 font-weight-bold">{{ group.name }}</span>
-              <div v-if="group.description" class="text-body-2 text-medium-emphasis mt-1">
-                {{ group.description }}
-              </div>
-              <div class="d-flex align-center gap-2 flex-wrap mt-2">
-                <v-chip v-if="isOwner" size="small" color="green-darken-3" variant="tonal">Dono</v-chip>
-                <v-chip
-                  size="small"
-                  color="green-darken-3"
-                  variant="tonal"
-                >
-                  <v-icon start :icon="group.is_public ? 'mdi-earth' : 'mdi-lock-outline'" size="x-small" />
-                  {{ group.is_public ? 'Público' : 'Privado' }}
-                </v-chip>
-              </div>
-            </div>
-          </div>
-
+      <!-- Cabeçalho Desktop -->
+      <div class="d-none d-sm-block mb-4">
+        <!-- Linha 1: Voltar + Sair do grupo -->
+        <div class="d-flex align-center justify-space-between mb-3">
+          <v-btn :to="{ name: 'MeusGrupos' }" variant="text" prepend-icon="mdi-arrow-left">
+            Voltar
+          </v-btn>
           <v-btn
             v-if="isMember && !isOwner"
             color="red-darken-2"
@@ -55,10 +21,97 @@
             Sair do grupo
           </v-btn>
         </div>
+
+        <!-- Linha 2: Avatar + info -->
+        <div class="d-flex align-start gap-4">
+          <v-avatar v-if="group.image_url" size="72" rounded="lg">
+            <v-img :src="group.image_url" cover />
+          </v-avatar>
+          <v-avatar v-else size="72" color="green-darken-3" rounded="lg">
+            <v-icon icon="mdi-account-group" color="white" />
+          </v-avatar>
+
+          <div class="px-3">
+            <span class="text-h5 font-weight-bold">{{ group.name }}</span>
+            <div v-if="group.description" class="text-body-2 text-medium-emphasis mt-1">
+              {{ group.description }}
+            </div>
+            <div class="d-flex align-center gap-2 flex-wrap mt-2">
+              <v-chip v-if="isOwner" size="small" color="green-darken-3" variant="tonal">Dono</v-chip>
+              <v-chip size="small" color="green-darken-3" variant="tonal">
+                <v-icon start :icon="group.is_public ? 'mdi-earth' : 'mdi-lock-outline'" size="x-small" />
+                {{ group.is_public ? 'Público' : 'Privado' }}
+              </v-chip>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Abas -->
-      <v-tabs v-model="tab" color="green-darken-3" class="mb-4">
+      <!-- Cabeçalho Mobile -->
+      <div class="d-flex d-sm-none flex-column mb-4">
+        <!-- Linha 1: Voltar -->
+        <div>
+          <v-btn :to="{ name: 'MeusGrupos' }" variant="text" prepend-icon="mdi-arrow-left">
+            Voltar
+          </v-btn>
+        </div>
+
+        <!-- Linha 2: Avatar + Sair do grupo -->
+        <div class="d-flex align-center justify-space-between mt-3">
+          <v-avatar v-if="group.image_url" size="80" rounded="lg">
+            <v-img :src="group.image_url" cover />
+          </v-avatar>
+          <v-avatar v-else size="80" color="green-darken-3" rounded="lg">
+            <v-icon icon="mdi-account-group" color="white" />
+          </v-avatar>
+
+          <v-btn
+            v-if="isMember && !isOwner"
+            color="red-darken-2"
+            variant="tonal"
+            rounded="lg"
+            prepend-icon="mdi-logout"
+            size="small"
+            @click="leaveDialog = true"
+          >
+            Sair do grupo
+          </v-btn>
+        </div>
+
+        <!-- Linha 3: Nome -->
+        <span class="text-h6 font-weight-bold mt-3">{{ group.name }}</span>
+
+        <!-- Linha 4: Descrição -->
+        <div v-if="group.description" class="text-body-2 text-medium-emphasis mt-2">
+          {{ group.description }}
+        </div>
+
+        <!-- Linha 5: Status -->
+        <div class="d-flex align-center gap-2 flex-wrap mt-2">
+          <v-chip v-if="isOwner" size="small" color="green-darken-3" variant="tonal">Dono</v-chip>
+          <v-chip size="small" color="green-darken-3" variant="tonal">
+            <v-icon start :icon="group.is_public ? 'mdi-earth' : 'mdi-lock-outline'" size="x-small" />
+            {{ group.is_public ? 'Público' : 'Privado' }}
+          </v-chip>
+        </div>
+      </div>
+
+      <!-- Abas Mobile: select -->
+      <v-select
+        v-model="tab"
+        :items="isOwner
+          ? [{ title: 'Ranking', value: 'ranking' }, { title: 'Membros', value: 'membros' }]
+          : [{ title: 'Ranking', value: 'ranking' }]"
+        item-title="title"
+        item-value="value"
+        variant="outlined"
+        density="comfortable"
+        color="green-darken-3"
+        class="d-flex d-sm-none mb-4"
+      />
+
+      <!-- Abas Desktop: tabs -->
+      <v-tabs v-model="tab" color="green-darken-3" class="d-none d-sm-flex mb-4">
         <v-tab value="ranking">
           <v-icon start icon="mdi-podium" />
           Ranking

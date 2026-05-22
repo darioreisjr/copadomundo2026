@@ -257,8 +257,29 @@
       <v-btn :to="{ name: 'Dashboard' }"  icon="mdi-view-dashboard"      />
       <v-btn :to="{ name: 'Games' }"      icon="mdi-soccer"              />
       <v-btn :to="{ name: 'Ranking' }"    icon="mdi-podium"              />
-      <v-btn :to="{ name: 'MeusGrupos' }" icon="mdi-account-group"       />
-      <v-btn :to="{ name: 'CriarGrupo' }" icon="mdi-account-group-outline" />
+      <v-menu
+        v-model="gruposMenu"
+        location="top"
+        :close-on-content-click="true"
+      >
+        <template #activator="{ props }">
+          <v-btn icon="mdi-plus" v-bind="props" />
+        </template>
+        <v-list bg-color="green-darken-4" density="compact" nav>
+          <v-list-item
+            prepend-icon="mdi-account-group"
+            title="Grupos"
+            :to="{ name: 'MeusGrupos' }"
+            base-color="white"
+          />
+          <v-list-item
+            prepend-icon="mdi-account-group-outline"
+            title="Meus Grupos"
+            :to="{ name: 'CriarGrupo' }"
+            base-color="white"
+          />
+        </v-list>
+      </v-menu>
       <v-menu
         v-if="auth.profile?.role === 'admin'"
         v-model="adminMenu"
@@ -398,6 +419,7 @@ const openAvatarPicker = inject('openAvatarPicker', () => {})
 
 const rightDrawer = ref(false)
 const adminMenu   = ref(false)
+const gruposMenu  = ref(false)
 
 
 async function handleLogout() {

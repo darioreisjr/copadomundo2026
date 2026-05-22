@@ -2,7 +2,7 @@
   <AppLayout>
     <div class="mb-4">
       <div class="text-h5 font-weight-bold mb-3">Grupos</div>
-      <div v-if="groups.myGroups.length" class="d-flex align-center justify-space-between gap-2">
+      <div v-if="groups.myGroups.length" class="d-flex flex-column flex-sm-row align-sm-center justify-sm-space-between gap-2">
         <v-text-field
           v-model="groupFilter"
           placeholder="Pesquisar meus grupos..."
@@ -12,12 +12,14 @@
           rounded="lg"
           hide-details
           clearable
-          style="max-width:280px"
+          :style="$vuetify.display.xs ? '' : 'max-width:420px'"
+          class="mb-1 mb-sm-0"
         />
         <v-btn
           color="green-darken-3"
           prepend-icon="mdi-account-search"
           rounded="lg"
+          class="mb-4 mb-sm-0"
           @click="searchDialog = true"
         >
           Encontrar grupo
