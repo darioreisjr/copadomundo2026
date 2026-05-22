@@ -5,42 +5,55 @@
     <template v-if="group">
       <!-- Cabeçalho -->
       <div class="mb-4">
-        <div class="d-flex align-center gap-3 mb-3 flex-wrap">
-          <v-btn
-            icon="mdi-arrow-left"
-            variant="text"
-            size="small"
-            :to="{ name: 'MeusGrupos' }"
-          />
-          <!-- Imagem do grupo -->
-          <v-avatar
-            v-if="group.image_url"
-            size="48"
-            rounded="lg"
-          >
-            <v-img :src="group.image_url" cover />
-          </v-avatar>
-          <v-avatar v-else size="48" color="green-darken-3" rounded="lg">
-            <v-icon icon="mdi-account-group" color="white" />
-          </v-avatar>
+        <div class="d-flex align-start justify-space-between gap-4 mb-3 flex-wrap">
+          <div class="d-flex align-start gap-4">
+            <v-btn
+              icon="mdi-arrow-left"
+              variant="text"
+              size="small"
+              :to="{ name: 'MeusGrupos' }"
+            />
+            <!-- Imagem do grupo -->
+            <v-avatar
+              v-if="group.image_url"
+              size="72"
+              rounded="lg"
+            >
+              <v-img :src="group.image_url" cover />
+            </v-avatar>
+            <v-avatar v-else size="72" color="green-darken-3" rounded="lg">
+              <v-icon icon="mdi-account-group" color="white" />
+            </v-avatar>
 
-          <div class="flex-grow-1">
-            <div class="d-flex align-center gap-2 flex-wrap">
+            <div class="px-3">
               <span class="text-h5 font-weight-bold">{{ group.name }}</span>
-              <v-chip v-if="isOwner" size="small" color="green-darken-3" variant="tonal">Dono</v-chip>
-              <v-chip
-                size="small"
-                :color="group.is_public ? 'blue' : 'grey'"
-                variant="tonal"
-              >
-                <v-icon start :icon="group.is_public ? 'mdi-earth' : 'mdi-lock-outline'" size="x-small" />
-                {{ group.is_public ? 'Público' : 'Privado' }}
-              </v-chip>
-            </div>
-            <div v-if="group.description" class="text-body-2 text-medium-emphasis mt-1">
-              {{ group.description }}
+              <div v-if="group.description" class="text-body-2 text-medium-emphasis mt-1">
+                {{ group.description }}
+              </div>
+              <div class="d-flex align-center gap-2 flex-wrap mt-2">
+                <v-chip v-if="isOwner" size="small" color="green-darken-3" variant="tonal">Dono</v-chip>
+                <v-chip
+                  size="small"
+                  color="green-darken-3"
+                  variant="tonal"
+                >
+                  <v-icon start :icon="group.is_public ? 'mdi-earth' : 'mdi-lock-outline'" size="x-small" />
+                  {{ group.is_public ? 'Público' : 'Privado' }}
+                </v-chip>
+              </div>
             </div>
           </div>
+
+          <v-btn
+            v-if="isMember && !isOwner"
+            color="red-darken-2"
+            variant="tonal"
+            rounded="lg"
+            prepend-icon="mdi-logout"
+            @click="leaveDialog = true"
+          >
+            Sair do grupo
+          </v-btn>
         </div>
       </div>
 
@@ -50,7 +63,7 @@
           <v-icon start icon="mdi-podium" />
           Ranking
         </v-tab>
-        <v-tab value="membros">
+        <v-tab v-if="isOwner" value="membros">
           <v-icon start icon="mdi-account-group" />
           Membros
         </v-tab>
@@ -61,6 +74,7 @@
         <v-window-item value="ranking">
           <v-progress-linear v-if="rankingLoading" indeterminate color="green-darken-3" class="mb-4" />
 
+          <template v-if="isMember">
           <template v-if="groups.groupRanking.length">
             <v-card elevation="2" class="w-100">
               <!-- Desktop -->
@@ -140,8 +154,13 @@
               </v-table>
             </v-card>
 
-            <div class="mt-4 text-caption text-medium-emphasis">
-              Critério de desempate: placares exatos → vencedores → palpites feitos
+            <div class="mt-4 text-caption text-medium-emphasis d-flex flex-column gap-1">
+              <span><strong>Pontos</strong> — total acumulado de pontos no bolão</span>
+              <span><strong>Placares exatos</strong> — acertou o placar exato do jogo (maior peso no desempate)</span>
+              <span><strong>Vencedor</strong> — acertou apenas o time vencedor ou que o jogo terminaria empatado</span>
+              <span><strong>Empates</strong> — acertou que o jogo terminaria empatado</span>
+              <span><strong>Palpites</strong> — total de palpites registrados</span>
+              <span class="mt-1">Critério de desempate: placares exatos → vencedor → palpites feitos</span>
             </div>
           </template>
 
@@ -151,6 +170,12 @@
           >
             <v-icon icon="mdi-podium-silver" size="60" style="opacity:.3" class="mb-4" />
             <p>Nenhum resultado ainda. Aguarde os placares serem apurados!</p>
+          </div>
+          </template>
+
+          <div v-else class="text-center py-12 text-medium-emphasis">
+            <v-icon icon="mdi-lock-outline" size="60" style="opacity:.3" class="mb-4" />
+            <p>Este ranking é visível apenas para membros do grupo.</p>
           </div>
         </v-window-item>
 
@@ -329,6 +354,40 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Dialog: sair do grupo -->
+    <v-dialog v-model="leaveDialog" max-width="420" persistent>
+      <v-card rounded="lg">
+        <v-card-title class="pt-4 px-4 font-weight-bold">Sair do grupo?</v-card-title>
+        <v-card-text class="px-4">
+          <p class="mb-3">Para confirmar, digite <strong>SAIR DO GRUPO</strong> abaixo:</p>
+          <v-text-field
+            v-model="leaveConfirmText"
+            variant="outlined"
+            density="comfortable"
+            rounded="lg"
+            hide-details
+            placeholder="SAIR DO GRUPO"
+            style="text-transform: uppercase"
+            @input="leaveConfirmText = leaveConfirmText.toUpperCase()"
+          />
+        </v-card-text>
+        <v-card-actions class="px-4 pb-4">
+          <v-spacer />
+          <v-btn variant="text" rounded="lg" @click="leaveDialog = false; leaveConfirmText = ''">Cancelar</v-btn>
+          <v-btn
+            color="red-darken-2"
+            variant="tonal"
+            rounded="lg"
+            :disabled="leaveConfirmText !== 'SAIR DO GRUPO'"
+            :loading="leaving"
+            @click="confirmLeave"
+          >
+            Confirmar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </AppLayout>
 </template>
 
@@ -355,6 +414,10 @@ const tab = ref('ranking')
 const inviteUsername = ref('')
 const inviting = ref(false)
 const removingId = ref(null)
+
+const leaveDialog = ref(false)
+const leaveConfirmText = ref('')
+const leaving = ref(false)
 const deleteDialog = ref(false)
 const deleting = ref(false)
 
@@ -363,6 +426,10 @@ const selectedEntry = ref(null)
 const selectedIdx = ref(null)
 
 const isOwner = computed(() => group.value?.owner_id === auth.user?.id)
+const isMember = computed(() =>
+  isOwner.value ||
+  (groups.groupMembers || []).some(m => m.user_id === auth.user?.id && m.status === 'active')
+)
 
 function openModal(entry, idx) {
   selectedEntry.value = entry
@@ -442,6 +509,21 @@ async function handleDelete() {
     toast.notify(e.message, 'error')
     deleting.value = false
     deleteDialog.value = false
+  }
+}
+
+async function confirmLeave() {
+  leaving.value = true
+  try {
+    await groups.leaveGroup(group.value.id)
+    toast.notify('Você saiu do grupo.', 'success')
+    router.push({ name: 'MeusGrupos' })
+  } catch (e) {
+    toast.notify(e.message, 'error')
+  } finally {
+    leaving.value = false
+    leaveDialog.value = false
+    leaveConfirmText.value = ''
   }
 }
 

@@ -87,6 +87,18 @@ create policy "group_members: owner deletes members" on public.group_members
 create policy "group_members: user deletes own" on public.group_members
   for delete using (auth.uid() = user_id);
 
+-- Usuário autenticado entra diretamente em grupos públicos (self-join)
+drop policy if exists "group_members: self join public group" on public.group_members;
+create policy "group_members: self join public group" on public.group_members
+  for insert with check (
+    auth.uid() = user_id
+    and status = 'active'
+    and exists (
+      select 1 from public.groups
+      where id = group_id and is_public = true
+    )
+  );
+
 -- ============================================================
 -- 4. Policies de groups (usam is_group_member — sem ciclo)
 -- ============================================================

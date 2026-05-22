@@ -1,7 +1,28 @@
 <template>
   <AppLayout>
     <div class="mb-4">
-      <div class="text-h5 font-weight-bold">Grupos</div>
+      <div class="text-h5 font-weight-bold mb-3">Grupos</div>
+      <div v-if="groups.myGroups.length" class="d-flex align-center justify-space-between gap-2">
+        <v-text-field
+          v-model="groupFilter"
+          placeholder="Pesquisar meus grupos..."
+          prepend-inner-icon="mdi-magnify"
+          variant="outlined"
+          density="compact"
+          rounded="lg"
+          hide-details
+          clearable
+          style="max-width:280px"
+        />
+        <v-btn
+          color="green-darken-3"
+          prepend-icon="mdi-account-search"
+          rounded="lg"
+          @click="searchDialog = true"
+        >
+          Encontrar grupo
+        </v-btn>
+      </div>
     </div>
 
     <v-progress-linear v-if="groups.loading" indeterminate color="green-darken-3" class="mb-4" />
@@ -65,7 +86,7 @@
     <template v-if="groups.myGroups.length">
       <v-row>
         <v-col
-          v-for="group in groups.myGroups"
+          v-for="group in filteredGroups"
           :key="group.id"
           cols="12"
           sm="6"
@@ -92,11 +113,13 @@
             </v-img>
 
             <v-card-text>
-              <div class="d-flex align-center gap-2 mb-1 flex-wrap">
+              <div class="d-flex align-center gap-2 mb-1">
                 <v-icon v-if="!group.image_url" icon="mdi-account-group" color="green-darken-3" />
                 <span class="font-weight-bold text-body-1">{{ group.name }}</span>
+              </div>
+              <div class="d-flex align-center gap-2 mb-1 flex-wrap">
                 <v-chip v-if="group.owner_id === auth.user?.id" size="x-small" color="green-darken-3" variant="tonal">Dono</v-chip>
-                <v-chip size="x-small" :color="group.is_public ? 'blue' : 'grey'" variant="tonal">
+                <v-chip size="x-small" color="green-darken-3" variant="tonal">
                   {{ group.is_public ? 'Público' : 'Privado' }}
                 </v-chip>
               </div>
@@ -113,6 +136,12 @@
           </v-card>
         </v-col>
       </v-row>
+      <div
+        v-if="groups.myGroups.length && !filteredGroups.length"
+        class="text-center py-8 text-medium-emphasis text-body-2"
+      >
+        Nenhum grupo encontrado para "{{ groupFilter }}".
+      </div>
     </template>
 
     <!-- Estado vazio -->
@@ -127,7 +156,7 @@
         Crie seu próprio grupo ou encontre grupos públicos para participar!
       </p>
       <v-btn
-        color="blue-darken-2"
+        color="green-darken-2"
         variant="tonal"
         prepend-icon="mdi-magnify"
         rounded="lg"
@@ -142,12 +171,12 @@
     <v-dialog v-model="searchDialog" max-width="480">
       <v-card rounded="lg">
         <v-card-title class="pt-4 px-4 font-weight-bold d-flex align-center gap-2">
-          <v-icon icon="mdi-magnify" color="blue-darken-2" />
+          <v-icon icon="mdi-magnify" color="green-darken-2" class="mr-1" />
           Encontrar grupo
         </v-card-title>
 
         <v-card-text class="px-4 pb-2">
-          <div class="d-flex gap-2 mb-4">
+          <div class="d-flex gap-3 mb-4">
             <v-text-field
               v-model="searchQuery"
               label="Nome do grupo"
@@ -173,7 +202,7 @@
           <v-btn
             block
             variant="outlined"
-            color="blue-darken-2"
+            color="green-darken-2"
             rounded="lg"
             prepend-icon="mdi-shuffle-variant"
             :loading="randomLoading"
@@ -191,11 +220,7 @@
             <v-list rounded="lg" elevation="1" class="pa-0" lines="two">
               <template v-for="(result, idx) in searchResults" :key="result.id">
                 <v-divider v-if="idx > 0" />
-                <v-list-item
-                  :to="{ name: 'GrupoDetail', params: { id: result.id } }"
-                  @click="searchDialog = false"
-                  class="py-2"
-                >
+                <v-list-item class="py-2">
                   <template #prepend>
                     <v-avatar size="40" rounded="lg" color="green-darken-3" class="mr-3">
                       <v-img v-if="result.image_url" :src="result.image_url" cover />
@@ -207,6 +232,19 @@
                     {{ activeMemberCount(result) }} membro{{ activeMemberCount(result) !== 1 ? 's' : '' }}
                     <template v-if="result.description"> · {{ result.description }}</template>
                   </v-list-item-subtitle>
+                  <template #append>
+                    <v-btn
+                      v-if="!isAlreadyMember(result)"
+                      size="small"
+                      color="green-darken-2"
+                      variant="tonal"
+                      rounded="lg"
+                      @click.stop="openJoinConfirm(result)"
+                    >
+                      Entrar
+                    </v-btn>
+                    <v-chip v-else size="small" color="green-darken-2" variant="tonal">Membro</v-chip>
+                  </template>
                 </v-list-item>
               </template>
             </v-list>
@@ -223,11 +261,34 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Dialog: confirmar entrada no grupo -->
+    <v-dialog v-model="joinConfirmDialog" max-width="400" persistent>
+      <v-card rounded="lg">
+        <v-card-title class="pt-4 px-4 font-weight-bold">Entrar no grupo?</v-card-title>
+        <v-card-text class="px-4">
+          Tem certeza que deseja entrar no grupo <strong>{{ joiningGroup?.name }}</strong>?
+        </v-card-text>
+        <v-card-actions class="px-4 pb-4">
+          <v-spacer />
+          <v-btn variant="text" rounded="lg" @click="joinConfirmDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="green-darken-2"
+            variant="tonal"
+            rounded="lg"
+            :loading="joiningLoading"
+            @click="confirmJoin"
+          >
+            Confirmar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </AppLayout>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import { useGroupsStore } from '@/stores/groups'
@@ -242,12 +303,23 @@ const router = useRouter()
 const acceptingId = ref(null)
 const decliningId = ref(null)
 
+const groupFilter = ref('')
+const filteredGroups = computed(() => {
+  if (!groupFilter.value?.trim()) return groups.myGroups
+  const q = groupFilter.value.trim().toLowerCase()
+  return groups.myGroups.filter(g => g.name.toLowerCase().includes(q))
+})
+
 const searchDialog = ref(false)
 const searchQuery = ref('')
 const searchResults = ref([])
 const searching = ref(false)
 const searched = ref(false)
 const randomLoading = ref(false)
+
+const joinConfirmDialog = ref(false)
+const joiningGroup = ref(null)
+const joiningLoading = ref(false)
 
 function activeCount(group) {
   return (group.group_members || []).filter(m => m.status === 'active').length
@@ -259,6 +331,31 @@ function pendingCount(group) {
 
 function activeMemberCount(group) {
   return (group.group_members || []).filter(m => m.status === 'active').length
+}
+
+function isAlreadyMember(group) {
+  const uid = auth.user?.id
+  return group.owner_id === uid || (group.group_members || []).some(m => m.user_id === uid)
+}
+
+function openJoinConfirm(group) {
+  joiningGroup.value = group
+  joinConfirmDialog.value = true
+}
+
+async function confirmJoin() {
+  joiningLoading.value = true
+  try {
+    await groups.joinGroup(joiningGroup.value.id)
+    toast.notify(`Você entrou no grupo ${joiningGroup.value.name}!`, 'success')
+    joinConfirmDialog.value = false
+    searchDialog.value = false
+    router.push({ name: 'GrupoDetail', params: { id: joiningGroup.value.id } })
+  } catch (e) {
+    toast.notify(e.message, 'error')
+  } finally {
+    joiningLoading.value = false
+  }
 }
 
 async function handleSearch() {
@@ -283,8 +380,9 @@ async function handleRandom() {
       toast.notify('Nenhum grupo público disponível.', 'info')
       return
     }
-    searchDialog.value = false
-    router.push({ name: 'GrupoDetail', params: { id: group.id } })
+    searchResults.value = [group]
+    searched.value = true
+    searchQuery.value = ''
   } catch (e) {
     toast.notify(e.message, 'error')
   } finally {

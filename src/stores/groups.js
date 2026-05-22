@@ -154,6 +154,17 @@ export const useGroupsStore = defineStore('groups', () => {
     await fetchGroupMembers(groupId)
   }
 
+  async function leaveGroup(groupId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('user_id', user?.id)
+    if (error) throw error
+    await fetchMyGroups()
+  }
+
   async function deleteGroup(groupId) {
     const { error } = await supabase
       .from('groups')
@@ -176,10 +187,9 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function fetchGroupRanking(groupId) {
-    // Busca os user_ids dos membros ativos do grupo
     const { data: members, error: e1 } = await supabase
       .from('group_members')
-      .select('user_id')
+      .select('user_id, profiles:user_id(name, username, avatar_url)')
       .eq('group_id', groupId)
       .eq('status', 'active')
 
@@ -195,13 +205,29 @@ export const useGroupsStore = defineStore('groups', () => {
       .from('ranking')
       .select('*, profiles(name, username, avatar_url)')
       .in('user_id', userIds)
-      .order('total_points', { ascending: false })
-      .order('exact_hits', { ascending: false })
-      .order('winner_hits', { ascending: false })
-      .order('total_bets', { ascending: false })
 
     if (e2) throw e2
-    groupRanking.value = data || []
+
+    const rankingMap = Object.fromEntries((data || []).map(r => [r.user_id, r]))
+
+    const merged = members.map(m => rankingMap[m.user_id] ?? {
+      user_id: m.user_id,
+      profiles: m.profiles,
+      total_points: 0,
+      exact_hits: 0,
+      winner_hits: 0,
+      draw_hits: 0,
+      total_bets: 0,
+    })
+
+    merged.sort((a, b) =>
+      b.total_points - a.total_points ||
+      b.exact_hits - a.exact_hits ||
+      b.winner_hits - a.winner_hits ||
+      b.total_bets - a.total_bets
+    )
+
+    groupRanking.value = merged
   }
 
   async function fetchGroup(groupId) {
@@ -237,11 +263,20 @@ export const useGroupsStore = defineStore('groups', () => {
     return data[Math.floor(Math.random() * data.length)]
   }
 
+  async function joinGroup(groupId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase
+      .from('group_members')
+      .insert({ group_id: groupId, user_id: user?.id, status: 'active' })
+    if (error) throw error
+    await fetchMyGroups()
+  }
+
   return {
     myGroups, pendingInvites, groupMembers, groupRanking, loading,
     fetchMyGroups, fetchPendingInvites, createGroup, uploadGroupImage, inviteByUsername,
     acceptInvite, declineInvite, removeFromGroup, deleteGroup,
     fetchGroupMembers, fetchGroupRanking, fetchGroup,
-    searchPublicGroups, fetchRandomPublicGroup,
+    searchPublicGroups, fetchRandomPublicGroup, joinGroup, leaveGroup,
   }
 })
