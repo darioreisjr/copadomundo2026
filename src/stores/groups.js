@@ -230,6 +230,17 @@ export const useGroupsStore = defineStore('groups', () => {
     groupRanking.value = merged
   }
 
+  async function updateGroup(groupId, { name, description, is_public, image_url }) {
+    const { data, error } = await supabase
+      .from('groups')
+      .update({ name, description: description || null, is_public: !!is_public, image_url: image_url || null })
+      .eq('id', groupId)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  }
+
   async function fetchGroup(groupId) {
     const { data, error } = await supabase
       .from('groups')
@@ -276,7 +287,7 @@ export const useGroupsStore = defineStore('groups', () => {
     myGroups, pendingInvites, groupMembers, groupRanking, loading,
     fetchMyGroups, fetchPendingInvites, createGroup, uploadGroupImage, inviteByUsername,
     acceptInvite, declineInvite, removeFromGroup, deleteGroup,
-    fetchGroupMembers, fetchGroupRanking, fetchGroup,
+    fetchGroupMembers, fetchGroupRanking, fetchGroup, updateGroup,
     searchPublicGroups, fetchRandomPublicGroup, joinGroup, leaveGroup,
   }
 })

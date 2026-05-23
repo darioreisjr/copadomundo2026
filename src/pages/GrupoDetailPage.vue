@@ -100,9 +100,7 @@
       <v-select
         v-if="route.name !== 'MeusGrupoDetail'"
         v-model="tab"
-        :items="isOwner
-          ? [{ title: 'Ranking', value: 'ranking' }, { title: 'Membros', value: 'membros' }]
-          : [{ title: 'Ranking', value: 'ranking' }]"
+        :items="[{ title: 'Ranking', value: 'ranking' }]"
         item-title="title"
         item-value="value"
         variant="outlined"
@@ -113,7 +111,7 @@
       <v-select
         v-else
         v-model="tab"
-        :items="[{ title: 'Membros', value: 'membros' }]"
+        :items="[{ title: 'Membros', value: 'membros' }, { title: 'Gerenciar', value: 'gerenciar' }]"
         item-title="title"
         item-value="value"
         variant="outlined"
@@ -128,9 +126,13 @@
           <v-icon start icon="mdi-podium" />
           Ranking
         </v-tab>
-        <v-tab v-if="isOwner" value="membros">
+        <v-tab v-if="route.name === 'MeusGrupoDetail'" value="membros">
           <v-icon start icon="mdi-account-group" />
           Membros
+        </v-tab>
+        <v-tab v-if="route.name === 'MeusGrupoDetail'" value="gerenciar">
+          <v-icon start icon="mdi-cog" />
+          Gerenciar
         </v-tab>
       </v-tabs>
 
@@ -343,7 +345,7 @@
             </v-col>
           </v-row>
 
-          <!-- Excluir grupo (só dono, não em Meus Grupos) -->
+          <!-- Excluir grupo (só dono, rota GrupoDetail) -->
           <template v-if="isOwner && route.name !== 'MeusGrupoDetail'">
             <v-divider class="mt-8 mb-4" />
             <div class="d-flex justify-end">
@@ -358,6 +360,130 @@
               </v-btn>
             </div>
           </template>
+        </v-window-item>
+
+        <!-- Aba Gerenciar (só dono na rota MeusGrupoDetail) -->
+        <v-window-item value="gerenciar">
+          <div class="d-flex justify-center mt-6">
+          <v-card elevation="0" rounded="lg" class="pa-0 w-100" style="max-width: 540px;">
+            <div class="d-flex flex-column gap-6">
+
+              <!-- Nome -->
+              <v-text-field
+                v-model="editName"
+                label="Nome do grupo"
+                variant="outlined"
+                density="comfortable"
+                rounded="lg"
+                hide-details="auto"
+                class="mt-4"
+                :rules="[v => !!v?.trim() || 'Nome obrigatório']"
+              />
+
+              <!-- Descrição -->
+              <v-textarea
+                v-model="editDescription"
+                label="Descrição (opcional)"
+                variant="outlined"
+                density="comfortable"
+                rounded="lg"
+                rows="3"
+                auto-grow
+                hide-details
+                class="mt-4"
+              />
+
+              <!-- Visibilidade -->
+              <div class="d-flex align-center gap-4 py-2">
+                <v-icon :icon="editIsPublic ? 'mdi-earth' : 'mdi-lock-outline'" color="green-darken-3" size="22" />
+                <span class="text-body-2 mr-4">{{ editIsPublic ? 'Público' : 'Privado' }}</span>
+                <v-switch
+                  v-model="editIsPublic"
+                  color="green-darken-3"
+                  hide-details
+                  density="compact"
+                />
+              </div>
+
+              <!-- Imagem -->
+              <div>
+                <div class="text-subtitle-2 font-weight-medium mb-4">Imagem do grupo</div>
+                <div class="d-flex gap-3 align-start flex-wrap">
+                  <!-- Preview -->
+                  <v-avatar
+                    v-if="editImagePreview || editImageUrl"
+                    size="120"
+                    rounded="lg"
+                    class="flex-shrink-0"
+                  >
+                    <v-img :src="editImagePreview || editImageUrl" cover />
+                  </v-avatar>
+                  <v-avatar v-else size="120" color="green-darken-3" rounded="lg" class="flex-shrink-0">
+                    <v-icon icon="mdi-account-group" color="white" size="40" />
+                  </v-avatar>
+
+                  <div class="d-flex flex-column gap-2 flex-grow-1">
+                    <v-text-field
+                      v-model="editImageUrl"
+                      label="URL da imagem"
+                      variant="outlined"
+                      density="comfortable"
+                      rounded="lg"
+                      hide-details
+                      :disabled="!!editImageFile"
+                      clearable
+                      @click:clear="editImageUrl = ''"
+                    />
+                    <div class="text-caption text-medium-emphasis text-center">— ou —</div>
+                    <v-file-input
+                      v-model="editImageFile"
+                      label="Fazer upload"
+                      variant="outlined"
+                      density="comfortable"
+                      rounded="lg"
+                      hide-details
+                      accept="image/*"
+                      prepend-icon=""
+                      prepend-inner-icon="mdi-upload"
+                      clearable
+                      @update:model-value="onEditFileChange"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Salvar -->
+              <div class="d-flex justify-end mt-2">
+                <v-btn
+                  color="green-darken-3"
+                  variant="tonal"
+                  rounded="lg"
+                  :loading="saving"
+                  :disabled="!editName?.trim() || !hasChanges"
+                  prepend-icon="mdi-content-save"
+                  @click="handleSave"
+                >
+                  Salvar alterações
+                </v-btn>
+              </div>
+
+              <!-- Excluir grupo -->
+              <v-divider class="mt-4 mb-2" />
+              <div class="d-flex justify-end">
+                <v-btn
+                  color="red"
+                  variant="tonal"
+                  prepend-icon="mdi-delete-outline"
+                  rounded="lg"
+                  @click="deleteDialog = true"
+                >
+                  Excluir grupo
+                </v-btn>
+              </div>
+
+            </div>
+          </v-card>
+          </div>
         </v-window-item>
       </v-window>
     </template>
@@ -534,7 +660,25 @@ const dialog = ref(false)
 const selectedEntry = ref(null)
 const selectedIdx = ref(null)
 
+const editName = ref('')
+const editDescription = ref('')
+const editIsPublic = ref(false)
+const editImageUrl = ref('')
+const editImageFile = ref(null)
+const editImagePreview = ref('')
+const saving = ref(false)
+
 const isOwner = computed(() => group.value?.owner_id === auth.user?.id)
+const hasChanges = computed(() => {
+  if (!group.value) return false
+  return (
+    editName.value.trim() !== (group.value.name ?? '') ||
+    editDescription.value.trim() !== (group.value.description ?? '') ||
+    editIsPublic.value !== group.value.is_public ||
+    editImageFile.value !== null ||
+    (editImageUrl.value || '') !== (group.value.image_url ?? '')
+  )
+})
 const isMember = computed(() =>
   isOwner.value ||
   (groups.groupMembers || []).some(m => m.user_id === auth.user?.id && m.status === 'active')
@@ -542,6 +686,46 @@ const isMember = computed(() =>
 const backRoute = computed(() =>
   route.name === 'MeusGrupoDetail' ? { name: 'MeusGruposOwner' } : { name: 'MeusGrupos' }
 )
+
+watch(tab, (val) => {
+  if (val === 'gerenciar' && group.value) {
+    editName.value = group.value.name
+    editDescription.value = group.value.description || ''
+    editIsPublic.value = group.value.is_public
+    editImageUrl.value = group.value.image_url || ''
+    editImageFile.value = null
+    editImagePreview.value = ''
+  }
+})
+
+function onEditFileChange(file) {
+  if (!file) { editImagePreview.value = ''; return }
+  const reader = new FileReader()
+  reader.onload = e => { editImagePreview.value = e.target.result }
+  reader.readAsDataURL(file)
+}
+
+async function handleSave() {
+  saving.value = true
+  try {
+    let imageUrl = editImageUrl.value
+    if (editImageFile.value) {
+      imageUrl = await groups.uploadGroupImage(editImageFile.value)
+    }
+    const updated = await groups.updateGroup(route.params.id, {
+      name: editName.value.trim(),
+      description: editDescription.value.trim(),
+      is_public: editIsPublic.value,
+      image_url: imageUrl || null,
+    })
+    group.value = updated
+    toast.notify('Grupo atualizado!', 'success')
+  } catch (e) {
+    toast.notify(e.message, 'error')
+  } finally {
+    saving.value = false
+  }
+}
 
 function openModal(entry, idx) {
   selectedEntry.value = entry
