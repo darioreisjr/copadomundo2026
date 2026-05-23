@@ -1,12 +1,25 @@
 <template>
   <AppLayout>
     <!-- Header igual MeusGruposPage -->
-    <div class="d-flex align-center justify-space-between mb-4">
-      <div class="text-h5 font-weight-bold">{{ ownedGroups.length ? 'Meus Grupos' : 'Criar Grupo' }}</div>
+    <div class="mb-4">
+      <div class="d-flex align-center justify-space-between">
+        <div class="text-h5 font-weight-bold">{{ ownedGroups.length ? 'Meus Grupos' : 'Criar Grupo' }}</div>
+        <v-btn
+          color="green-darken-3"
+          prepend-icon="mdi-plus"
+          rounded="lg"
+          class="d-none d-sm-flex"
+          @click="openDialog"
+        >
+          Criar grupo
+        </v-btn>
+      </div>
       <v-btn
         color="green-darken-3"
         prepend-icon="mdi-plus"
         rounded="lg"
+        block
+        class="d-flex d-sm-none mt-2"
         @click="openDialog"
       >
         Criar grupo

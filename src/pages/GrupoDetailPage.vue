@@ -250,7 +250,7 @@
         <v-window-item value="membros">
           <!-- Convidar por username (só o dono vê) -->
           <template v-if="isOwner">
-            <v-card :elevation="route.name === 'MeusGrupoDetail' ? 0 : 1" rounded="lg" class="mb-6 pa-4" :style="route.name === 'MeusGrupoDetail' ? 'max-width: 50%; background: transparent; box-shadow: none; border: none;' : ''">
+            <v-card :elevation="route.name === 'MeusGrupoDetail' ? 0 : 1" rounded="lg" class="mb-6 pa-4" :style="route.name === 'MeusGrupoDetail' ? ($vuetify.display.xs ? 'background: transparent; box-shadow: none; border: none;' : 'max-width: 50%; background: transparent; box-shadow: none; border: none;') : ''">
               <div class="text-subtitle-2 font-weight-medium mb-3">Convidar por @username</div>
               <div class="d-flex gap-2 align-start">
                 <v-text-field
