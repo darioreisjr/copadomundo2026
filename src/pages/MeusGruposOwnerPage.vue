@@ -28,7 +28,7 @@
           <v-card
             elevation="2"
             rounded="lg"
-            :to="{ name: 'GrupoDetail', params: { id: group.id } }"
+            :to="{ name: 'MeusGrupoDetail', params: { id: group.id } }"
             hover
           >
             <v-img
@@ -49,16 +49,13 @@
               <div class="d-flex align-center gap-2 mb-1 flex-wrap">
                 <v-icon v-if="!group.image_url" icon="mdi-account-group" color="green-darken-3" />
                 <span class="font-weight-bold text-body-1">{{ group.name }}</span>
-                <v-chip size="x-small" :color="group.is_public ? 'blue' : 'grey'" variant="tonal">
-                  {{ group.is_public ? 'Público' : 'Privado' }}
-                </v-chip>
               </div>
-              <div v-if="group.description" class="text-caption text-medium-emphasis mb-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+              <div v-if="group.description" class="text-caption text-medium-emphasis mb-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
                 {{ group.description }}
               </div>
-              <div class="text-caption text-medium-emphasis">
-                {{ activeCount(group) }} membro{{ activeCount(group) !== 1 ? 's' : '' }}
-              </div>
+              <v-chip size="x-small" :color="group.is_public ? 'green-darken-3' : 'grey'" variant="tonal">
+                {{ group.is_public ? 'Público' : 'Privado' }}
+              </v-chip>
             </v-card-text>
           </v-card>
         </v-col>
@@ -234,7 +231,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import { useGroupsStore } from '@/stores/groups'
 import { useAuthStore } from '@/stores/auth'
@@ -244,7 +241,6 @@ const groups = useGroupsStore()
 const auth = useAuthStore()
 const toast = useToastStore()
 const router = useRouter()
-const route = useRoute()
 
 const createDialog = ref(false)
 const creating = ref(false)
@@ -311,11 +307,5 @@ async function handleCreate() {
 
 onMounted(async () => {
   await groups.fetchMyGroups()
-  const hasOwned = groups.myGroups.some(g => g.owner_id === auth.user?.id)
-  if (hasOwned && route.name === 'CriarGrupo') {
-    router.replace({ name: 'MeusGrupos2' })
-  } else if (!hasOwned && route.name === 'MeusGrupos2') {
-    router.replace({ name: 'CriarGrupo' })
-  }
 })
 </script>

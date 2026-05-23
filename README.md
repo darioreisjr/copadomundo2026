@@ -78,7 +78,7 @@ O painel administrativo oferece:
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo: primeira vez gratuita; após salvar, a tela exibe o placar em modo somente leitura — atualizar um palpite existente custa 30 selos (confirmação via diálogo antes do débito); placar centralizado nos campos de entrada; feedback de sucesso via toast no canto inferior direito
 - **Especialista IA:** botão "Chamar Especialista" na tela de palpite custa **20 selos** e consulta o histórico real de confrontos entre as duas seleções em Copas do Mundo (via OpenFootball, 1930–2022), passando os dados verificados ao Google Gemini para gerar análise estatística com vitórias, empates, gols, probabilidades de cada resultado e sugestão de placar; a análise é gerada **uma única vez** e armazenada em cache no banco (tabela `match_analyses`) — usuários subsequentes reutilizam o resultado sem nova chamada à IA; o usuário que já pagou tem a análise carregada automaticamente ao retornar à página e o botão fica desabilitado (consulta registrada em `user_seals` com `event_key = 'ai_expert_called'`)
-- **Grupos privados e públicos:** crie grupos com nome, descrição, imagem (URL ou upload) e privacidade (privado/público); convide participantes por `@username`; convites recebidos aparecem em "Grupos" com opção de aceitar ou recusar; ranking privado do grupo calculado automaticamente a partir dos palpites reais dos membros — todos os membros ativos aparecem no ranking mesmo sem palpites (valores zerados); busca de grupos públicos por nome e descoberta de grupo aleatório em "Grupos" com entrada direta via botão "Entrar" e confirmação; membros não-donos podem sair do grupo digitando "SAIR DO GRUPO" para confirmar; ranking do grupo visível apenas para membros; aba "Membros" visível apenas para o dono; página "Meus Grupos" lista os grupos com pesquisa por nome e botão "Encontrar Grupo"; página "Meus Grupos" lista os grupos criados pelo próprio usuário com dialog de criação integrado; **menu e URL dinâmicos:** quando o usuário não tem nenhum grupo criado, o item do menu exibe "Criar Grupo" e a URL é `/criar-grupo`; ao criar o primeiro grupo, o menu passa a exibir "Meus Grupos" e a URL muda automaticamente para `/meus-grupos`; **modal de criação responsivo:** layout do modal adaptado para mobile com seções de privacidade e imagem centralizadas, botões de toggle em largura total e espaçamento otimizado
+- **Grupos privados e públicos:** crie grupos com nome, descrição, imagem (URL ou upload) e privacidade (privado/público); convide participantes por `@username`; convites recebidos aparecem em "Grupos" com opção de aceitar ou recusar; ranking privado do grupo calculado automaticamente a partir dos palpites reais dos membros — todos os membros ativos aparecem no ranking mesmo sem palpites (valores zerados); busca de grupos públicos por nome e descoberta de grupo aleatório em "Grupos" com entrada direta via botão "Entrar" e confirmação; membros não-donos podem sair do grupo digitando "SAIR DO GRUPO" para confirmar; remoção de membro exige digitação do nome exato do usuário para confirmar; ranking do grupo visível apenas para membros; **"Meus Grupos"** (`/meus-grupos`) lista exclusivamente os grupos criados pelo próprio usuário com dialog de criação integrado — ao clicar num grupo abre `/meus-grupos/:id` com fluxo próprio (sem aba Ranking, sem badge Dono, botão Voltar retorna para Meus Grupos, cards de membros com borda colorida por status); **"Grupos"** (`/grupos`) lista todos os grupos em que o usuário participa com pesquisa e botão "Encontrar Grupo"; **modal de criação responsivo:** layout do modal adaptado para mobile com seções de privacidade e imagem centralizadas, botões de toggle em largura total e espaçamento otimizado
 - Ranking global com medalhas para o top 3; nomes de todos os participantes exibidos corretamente (policy RLS de leitura pública de perfis); **responsivo no mobile**: exibe apenas Posição, Nome e Pontos na tabela — tocar em qualquer linha abre um modal com todos os detalhes (Placares exatos, Vencedor, Empates, Palpites); legenda "Entenda a pontuação" abaixo dos critérios de desempate explica cada coluna
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
   - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone, **username** (identificador único com `@`, validação de formato e disponibilidade em tempo real) e **nome fantasia** (apelido de exibição no bolão); e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
@@ -119,7 +119,7 @@ copa-do-mundo/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
     ├── App.vue                 # Root component com transição page-fade, provide do seletor de avatar e modal global de selos
     ├── router/
-    │   └── index.js            # 19 rotas com guards de autenticação e papel
+    │   └── index.js            # 21 rotas com guards de autenticação e papel
     ├── stores/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
     │   ├── avatars.js          # CRUD de avatares + upload para Supabase Storage
@@ -155,9 +155,9 @@ copa-do-mundo/
         ├── GamesPage.vue
         ├── BetPage.vue
         ├── RankingPage.vue
-        ├── MeusGruposPage.vue      # Grupos: listagem dos grupos em que participo + convites recebidos
-        ├── CriarGrupoPage.vue      # Meus Grupos / Criar Grupo: gerencia grupos próprios e abre dialog de criação
-        ├── GrupoDetailPage.vue     # Detalhe do grupo: ranking privado e membros
+        ├── MeusGruposPage.vue          # Grupos: listagem dos grupos em que participo + convites recebidos
+        ├── MeusGruposOwnerPage.vue     # Meus Grupos: lista e cria grupos próprios do usuário
+        ├── GrupoDetailPage.vue         # Detalhe do grupo: ranking privado e membros (reutilizado em /grupos/:id e /meus-grupos/:id)
         ├── AccountPage.vue         # Minha Conta: dados pessoais, segurança, preferências, exclusão
         ├── AdminPage.vue
         ├── AdminAvatarsPage.vue    # Gerenciamento de avatares (somente admin)
@@ -476,8 +476,8 @@ npm run preview  # Preview do build local
 | `/ranking` | RankingPage | Autenticado |
 | `/grupos` | MeusGruposPage | Autenticado |
 | `/grupos/:id` | GrupoDetailPage | Autenticado |
-| `/criar-grupo` | CriarGrupoPage (sem grupos criados) | Autenticado |
-| `/meus-grupos` | CriarGrupoPage (com grupos criados) | Autenticado |
+| `/meus-grupos` | MeusGruposOwnerPage | Autenticado |
+| `/meus-grupos/:id` | GrupoDetailPage (contexto Meus Grupos) | Autenticado |
 | `/minha-conta` | AccountPage | Autenticado |
 | `/admin` | AdminPage | Admin apenas |
 | `/admin/avatares` | AdminAvatarsPage | Admin apenas |

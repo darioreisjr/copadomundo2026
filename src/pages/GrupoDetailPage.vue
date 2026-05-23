@@ -7,7 +7,7 @@
       <div class="d-none d-sm-block mb-4">
         <!-- Linha 1: Voltar + Sair do grupo -->
         <div class="d-flex align-center justify-space-between mb-3">
-          <v-btn :to="{ name: 'MeusGrupos' }" variant="text" prepend-icon="mdi-arrow-left">
+          <v-btn :to="backRoute" variant="text" prepend-icon="mdi-arrow-left">
             Voltar
           </v-btn>
           <v-btn
@@ -37,7 +37,7 @@
               {{ group.description }}
             </div>
             <div class="d-flex align-center gap-2 flex-wrap mt-2">
-              <v-chip v-if="isOwner" size="small" color="green-darken-3" variant="tonal">Dono</v-chip>
+              <v-chip v-if="isOwner && route.name !== 'MeusGrupoDetail'" size="small" color="green-darken-3" variant="tonal">Dono</v-chip>
               <v-chip size="small" color="green-darken-3" variant="tonal">
                 <v-icon start :icon="group.is_public ? 'mdi-earth' : 'mdi-lock-outline'" size="x-small" />
                 {{ group.is_public ? 'Público' : 'Privado' }}
@@ -51,7 +51,7 @@
       <div class="d-flex d-sm-none flex-column mb-4">
         <!-- Linha 1: Voltar -->
         <div>
-          <v-btn :to="{ name: 'MeusGrupos' }" variant="text" prepend-icon="mdi-arrow-left">
+          <v-btn :to="backRoute" variant="text" prepend-icon="mdi-arrow-left">
             Voltar
           </v-btn>
         </div>
@@ -88,7 +88,7 @@
 
         <!-- Linha 5: Status -->
         <div class="d-flex align-center gap-2 flex-wrap mt-2">
-          <v-chip v-if="isOwner" size="small" color="green-darken-3" variant="tonal">Dono</v-chip>
+          <v-chip v-if="isOwner && route.name !== 'MeusGrupoDetail'" size="small" color="green-darken-3" variant="tonal">Dono</v-chip>
           <v-chip size="small" color="green-darken-3" variant="tonal">
             <v-icon start :icon="group.is_public ? 'mdi-earth' : 'mdi-lock-outline'" size="x-small" />
             {{ group.is_public ? 'Público' : 'Privado' }}
@@ -98,6 +98,7 @@
 
       <!-- Abas Mobile: select -->
       <v-select
+        v-if="route.name !== 'MeusGrupoDetail'"
         v-model="tab"
         :items="isOwner
           ? [{ title: 'Ranking', value: 'ranking' }, { title: 'Membros', value: 'membros' }]
@@ -109,10 +110,21 @@
         color="green-darken-3"
         class="d-flex d-sm-none mb-4"
       />
+      <v-select
+        v-else
+        v-model="tab"
+        :items="[{ title: 'Membros', value: 'membros' }]"
+        item-title="title"
+        item-value="value"
+        variant="outlined"
+        density="comfortable"
+        color="green-darken-3"
+        class="d-flex d-sm-none mb-4"
+      />
 
       <!-- Abas Desktop: tabs -->
       <v-tabs v-model="tab" color="green-darken-3" class="d-none d-sm-flex mb-4">
-        <v-tab value="ranking">
+        <v-tab v-if="route.name !== 'MeusGrupoDetail'" value="ranking">
           <v-icon start icon="mdi-podium" />
           Ranking
         </v-tab>
@@ -236,7 +248,7 @@
         <v-window-item value="membros">
           <!-- Convidar por username (só o dono vê) -->
           <template v-if="isOwner">
-            <v-card elevation="1" rounded="lg" class="mb-6 pa-4">
+            <v-card :elevation="route.name === 'MeusGrupoDetail' ? 0 : 1" rounded="lg" class="mb-6 pa-4" :style="route.name === 'MeusGrupoDetail' ? 'max-width: 50%; background: transparent; box-shadow: none; border: none;' : ''">
               <div class="text-subtitle-2 font-weight-medium mb-3">Convidar por @username</div>
               <div class="d-flex gap-2 align-start">
                 <v-text-field
@@ -265,41 +277,32 @@
             </v-card>
           </template>
 
-          <!-- Lista de membros -->
+          <!-- Cards de membros -->
           <v-progress-linear v-if="membersLoading" indeterminate color="green-darken-3" class="mb-3" />
 
-          <v-list v-if="groups.groupMembers.length" rounded="lg" elevation="2" class="pa-0" lines="two">
-            <template v-for="(member, idx) in groups.groupMembers" :key="member.id">
-              <v-divider v-if="idx > 0" />
-              <v-list-item class="py-3">
-                <template #prepend>
-                  <v-avatar color="green-darken-2" size="40" class="mr-3">
-                    <v-img v-if="member.profiles?.avatar_url" :src="member.profiles.avatar_url" cover />
-                    <span v-else class="text-white font-weight-bold">
-                      {{ (member.profiles?.name || '?')[0].toUpperCase() }}
-                    </span>
-                  </v-avatar>
-                </template>
-
-                <v-list-item-title class="font-weight-medium">
-                  {{ member.profiles?.name ?? '—' }}
-                  <v-chip
-                    v-if="member.user_id === group.owner_id"
-                    size="x-small"
-                    color="green-darken-3"
-                    variant="tonal"
-                    class="ml-1"
-                  >Dono</v-chip>
-                  <v-chip
-                    v-if="member.user_id === auth.user?.id"
-                    size="x-small"
-                    color="blue"
-                    variant="tonal"
-                    class="ml-1"
-                  >Você</v-chip>
-                </v-list-item-title>
-                <v-list-item-subtitle>
-                  <template v-if="member.profiles?.username">@{{ member.profiles.username }} · </template>
+          <v-row v-if="groups.groupMembers.length">
+            <v-col
+              v-for="member in groups.groupMembers"
+              :key="member.id"
+              cols="6"
+              sm="4"
+              md="3"
+            >
+              <v-card
+                rounded="lg"
+                :elevation="member.user_id === auth.user?.id ? 0 : 2"
+                :style="member.user_id === auth.user?.id
+                  ? 'border: 2px solid #2e7d32; background: #f1f8e9;'
+                  : route.name === 'MeusGrupoDetail'
+                    ? member.status === 'active'
+                      ? 'border: 2px solid #43a047;'
+                      : 'border: 2px solid #ffa000;'
+                    : ''"
+                class="pa-2"
+                style="min-height: 130px; position: relative;"
+              >
+                <!-- Status: canto superior direito -->
+                <div style="position: absolute; top: 8px; right: 8px;">
                   <v-chip
                     :color="member.status === 'active' ? 'green' : 'amber-darken-2'"
                     size="x-small"
@@ -307,25 +310,41 @@
                   >
                     {{ member.status === 'active' ? 'Ativo' : 'Pendente' }}
                   </v-chip>
-                </v-list-item-subtitle>
+                </div>
 
-                <template #append>
+                <!-- Conteúdo centralizado -->
+                <div class="d-flex flex-column align-center text-center pt-2 pb-1">
+                  <v-avatar color="green-darken-2" size="48" class="mb-2">
+                    <v-img v-if="member.profiles?.avatar_url" :src="member.profiles.avatar_url" cover />
+                    <span v-else class="text-white font-weight-bold text-body-2">
+                      {{ (member.profiles?.name || '?')[0].toUpperCase() }}
+                    </span>
+                  </v-avatar>
+                  <div class="font-weight-medium text-body-2" style="line-height:1.3">
+                    {{ member.profiles?.name ?? '—' }}
+                  </div>
+                  <div v-if="member.profiles?.username" class="text-caption text-medium-emphasis">
+                    @{{ member.profiles.username }}
+                  </div>
+                </div>
+
+                <!-- Remover: canto inferior direito -->
+                <div v-if="isOwner && member.user_id !== auth.user?.id" style="position: absolute; bottom: 6px; right: 6px;">
                   <v-btn
-                    v-if="isOwner && member.user_id !== auth.user?.id"
                     icon="mdi-account-remove"
                     variant="text"
-                    size="small"
+                    size="x-small"
                     color="red"
                     :loading="removingId === member.user_id"
-                    @click="handleRemove(member.user_id)"
+                    @click="openRemoveDialog(member)"
                   />
-                </template>
-              </v-list-item>
-            </template>
-          </v-list>
+                </div>
+              </v-card>
+            </v-col>
+          </v-row>
 
-          <!-- Excluir grupo (só dono) -->
-          <template v-if="isOwner">
+          <!-- Excluir grupo (só dono, não em Meus Grupos) -->
+          <template v-if="isOwner && route.name !== 'MeusGrupoDetail'">
             <v-divider class="mt-8 mb-4" />
             <div class="d-flex justify-end">
               <v-btn
@@ -389,6 +408,40 @@
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
           <v-btn color="green-darken-3" variant="tonal" rounded="lg" @click="dialog = false">Fechar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Dialog confirmar remoção de membro -->
+    <v-dialog v-model="removeDialog" max-width="400" persistent>
+      <v-card rounded="lg">
+        <v-card-title class="pt-4 px-4 font-weight-bold">Remover membro?</v-card-title>
+        <v-card-text class="px-4">
+          <p class="mb-3 text-body-2 text-medium-emphasis">
+            Para confirmar, digite <strong>{{ memberToRemove?.profiles?.name }}</strong> abaixo:
+          </p>
+          <v-text-field
+            v-model="removeConfirmText"
+            variant="outlined"
+            density="comfortable"
+            rounded="lg"
+            hide-details
+            :placeholder="memberToRemove?.profiles?.name"
+          />
+        </v-card-text>
+        <v-card-actions class="px-4 pb-4 gap-2">
+          <v-spacer />
+          <v-btn variant="text" rounded="lg" @click="removeDialog = false; removeConfirmText = ''">Cancelar</v-btn>
+          <v-btn
+            color="red"
+            variant="tonal"
+            rounded="lg"
+            :disabled="removeConfirmText !== memberToRemove?.profiles?.name"
+            :loading="removingId === memberToRemove?.user_id"
+            @click="confirmRemove"
+          >
+            Remover
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -462,11 +515,14 @@ const group = ref(null)
 const loading = ref(false)
 const rankingLoading = ref(false)
 const membersLoading = ref(false)
-const tab = ref('ranking')
+const tab = ref(route.name === 'MeusGrupoDetail' ? 'membros' : 'ranking')
 
 const inviteUsername = ref('')
 const inviting = ref(false)
 const removingId = ref(null)
+const removeDialog = ref(false)
+const memberToRemove = ref(null)
+const removeConfirmText = ref('')
 
 const leaveDialog = ref(false)
 const leaveConfirmText = ref('')
@@ -482,6 +538,9 @@ const isOwner = computed(() => group.value?.owner_id === auth.user?.id)
 const isMember = computed(() =>
   isOwner.value ||
   (groups.groupMembers || []).some(m => m.user_id === auth.user?.id && m.status === 'active')
+)
+const backRoute = computed(() =>
+  route.name === 'MeusGrupoDetail' ? { name: 'MeusGruposOwner' } : { name: 'MeusGrupos' }
 )
 
 function openModal(entry, idx) {
@@ -500,7 +559,7 @@ async function load() {
     ])
   } catch (e) {
     toast.notify('Grupo não encontrado.', 'error')
-    router.push({ name: 'MeusGrupos' })
+    router.push(backRoute.value)
   } finally {
     loading.value = false
   }
@@ -539,6 +598,29 @@ async function handleInvite() {
   }
 }
 
+function openRemoveDialog(member) {
+  memberToRemove.value = member
+  removeConfirmText.value = ''
+  removeDialog.value = true
+}
+
+async function confirmRemove() {
+  const member = memberToRemove.value
+  removingId.value = member.user_id
+  try {
+    await groups.removeFromGroup(route.params.id, member.user_id)
+    toast.notify('Membro removido.', 'success')
+    removeDialog.value = false
+    removeConfirmText.value = ''
+    memberToRemove.value = null
+    await loadMembers()
+  } catch (e) {
+    toast.notify(e.message, 'error')
+  } finally {
+    removingId.value = null
+  }
+}
+
 async function handleRemove(userId) {
   removingId.value = userId
   try {
@@ -557,7 +639,7 @@ async function handleDelete() {
   try {
     await groups.deleteGroup(route.params.id)
     toast.notify('Grupo excluído.', 'success')
-    router.push({ name: 'MeusGrupos' })
+    router.push(backRoute.value)
   } catch (e) {
     toast.notify(e.message, 'error')
     deleting.value = false
@@ -570,7 +652,7 @@ async function confirmLeave() {
   try {
     await groups.leaveGroup(group.value.id)
     toast.notify('Você saiu do grupo.', 'success')
-    router.push({ name: 'MeusGrupos' })
+    router.push(backRoute.value)
   } catch (e) {
     toast.notify(e.message, 'error')
   } finally {

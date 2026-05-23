@@ -47,8 +47,8 @@
         />
         <v-list-item
           prepend-icon="mdi-account-group-outline"
-          :title="hasOwnedGroups ? 'Meus Grupos' : 'Criar Grupo'"
-          :to="hasOwnedGroups ? { name: 'MeusGrupos2' } : { name: 'CriarGrupo' }"
+          title="Meus Grupos"
+          :to="{ name: 'MeusGruposOwner' }"
           rounded="lg"
         />
       </v-list>
@@ -274,8 +274,8 @@
           />
           <v-list-item
             prepend-icon="mdi-account-group-outline"
-            :title="hasOwnedGroups ? 'Meus Grupos' : 'Criar Grupo'"
-            :to="hasOwnedGroups ? { name: 'MeusGrupos2' } : { name: 'CriarGrupo' }"
+            title="Meus Grupos"
+            :to="{ name: 'MeusGruposOwner' }"
             base-color="white"
           />
         </v-list>
@@ -417,9 +417,6 @@ const toast        = useToastStore()
 const groupsStore  = useGroupsStore()
 const router       = useRouter()
 
-const hasOwnedGroups = computed(() =>
-  groupsStore.myGroups.some(g => g.owner_id === auth.user?.id)
-)
 
 const openAvatarPicker = inject('openAvatarPicker', () => {})
 
