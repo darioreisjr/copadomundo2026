@@ -47,8 +47,8 @@
         />
         <v-list-item
           prepend-icon="mdi-account-group-outline"
-          title="Meus Grupos"
-          :to="{ name: 'CriarGrupo' }"
+          :title="hasOwnedGroups ? 'Meus Grupos' : 'Criar Grupo'"
+          :to="hasOwnedGroups ? { name: 'MeusGrupos2' } : { name: 'CriarGrupo' }"
           rounded="lg"
         />
       </v-list>
@@ -274,8 +274,8 @@
           />
           <v-list-item
             prepend-icon="mdi-account-group-outline"
-            title="Meus Grupos"
-            :to="{ name: 'CriarGrupo' }"
+            :title="hasOwnedGroups ? 'Meus Grupos' : 'Criar Grupo'"
+            :to="hasOwnedGroups ? { name: 'MeusGrupos2' } : { name: 'CriarGrupo' }"
             base-color="white"
           />
         </v-list>
@@ -397,11 +397,12 @@
 </template>
 
 <script setup>
-import { ref, inject, watch } from 'vue'
+import { ref, inject, watch, computed } from 'vue'
 import { useDisplay } from 'vuetify'
 import { useAuthStore }    from '@/stores/auth'
 import { useToastStore }   from '@/stores/toast'
 import { useAvatarsStore } from '@/stores/avatars'
+import { useGroupsStore }  from '@/stores/groups'
 import { useRouter } from 'vue-router'
 
 const { fluid, isPublic } = defineProps({
@@ -412,8 +413,13 @@ const { fluid, isPublic } = defineProps({
 const display      = useDisplay()
 const auth         = useAuthStore()
 const avatarsStore = useAvatarsStore()
-const toast = useToastStore()
-const router = useRouter()
+const toast        = useToastStore()
+const groupsStore  = useGroupsStore()
+const router       = useRouter()
+
+const hasOwnedGroups = computed(() =>
+  groupsStore.myGroups.some(g => g.owner_id === auth.user?.id)
+)
 
 const openAvatarPicker = inject('openAvatarPicker', () => {})
 

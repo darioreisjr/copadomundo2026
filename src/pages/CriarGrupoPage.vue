@@ -93,7 +93,7 @@
       <v-card rounded="lg">
         <v-card-title class="pt-4 px-4 font-weight-bold">Criar grupo</v-card-title>
 
-        <v-card-text class="px-4 pb-2 d-flex flex-column gap-3">
+        <v-card-text class="px-4 pb-2 d-flex flex-column gap-4">
           <!-- Nome -->
           <v-text-field
             v-model="form.name"
@@ -115,11 +115,12 @@
             rows="2"
             auto-grow
             hide-details
+            class="mb-sm-2"
           />
 
           <!-- Privacidade -->
-          <div class="d-flex align-center justify-space-between pa-1">
-            <div>
+          <div class="d-flex flex-column flex-sm-row align-center justify-space-between pa-1 gap-2 mt-2 mt-sm-0">
+            <div class="text-center text-sm-start">
               <div class="text-body-2 font-weight-medium">Privacidade</div>
               <div class="text-caption text-medium-emphasis">
                 {{ form.is_public ? 'Qualquer membro pode ver o grupo' : 'Apenas convidados podem entrar' }}
@@ -131,12 +132,14 @@
               rounded="lg"
               density="compact"
               color="green-darken-3"
+              class="w-100 w-sm-auto"
+              style="border: 1.5px solid #2e7d32"
             >
-              <v-btn :value="false" size="small">
+              <v-btn :value="false" size="small" class="flex-grow-1">
                 <v-icon start icon="mdi-lock-outline" />
                 Privado
               </v-btn>
-              <v-btn :value="true" size="small">
+              <v-btn :value="true" size="small" class="flex-grow-1">
                 <v-icon start icon="mdi-earth" />
                 Público
               </v-btn>
@@ -144,21 +147,22 @@
           </div>
 
           <!-- Imagem -->
-          <div>
-            <div class="text-body-2 font-weight-medium mb-2">Imagem do grupo (opcional)</div>
+          <div class="d-flex flex-column align-center align-sm-center">
+            <div class="text-body-2 font-weight-medium mb-2 text-center mt-2 mt-sm-4">Imagem do grupo (opcional)</div>
             <v-btn-toggle
               v-model="imageMode"
               mandatory
               rounded="lg"
               density="compact"
               color="green-darken-3"
-              class="mb-3"
+              class="mb-3 w-100 w-sm-auto"
+              style="border: 1.5px solid #2e7d32"
             >
-              <v-btn value="url" size="small">
+              <v-btn value="url" size="small" class="flex-grow-1 px-sm-6">
                 <v-icon start icon="mdi-link" />
                 URL
               </v-btn>
-              <v-btn value="file" size="small">
+              <v-btn value="file" size="small" class="flex-grow-1 px-sm-6">
                 <v-icon start icon="mdi-upload" />
                 Upload
               </v-btn>
@@ -173,6 +177,7 @@
               rounded="lg"
               hide-details
               placeholder="https://..."
+              class="w-100"
               @update:model-value="previewFromUrl"
             />
 
@@ -187,6 +192,7 @@
               accept="image/*"
               prepend-icon=""
               prepend-inner-icon="mdi-image-outline"
+              class="w-100"
               @update:model-value="previewFromFile"
             />
 
@@ -196,7 +202,7 @@
               height="140"
               cover
               rounded="lg"
-              class="mt-3"
+              class="mt-3 w-100"
             >
               <template #error>
                 <div class="bg-grey-lighten-3 d-flex align-center justify-center rounded-lg" style="height:140px">
@@ -228,7 +234,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import { useGroupsStore } from '@/stores/groups'
 import { useAuthStore } from '@/stores/auth'
@@ -238,6 +244,7 @@ const groups = useGroupsStore()
 const auth = useAuthStore()
 const toast = useToastStore()
 const router = useRouter()
+const route = useRoute()
 
 const createDialog = ref(false)
 const creating = ref(false)
@@ -267,7 +274,7 @@ function previewFromUrl(val) {
 }
 
 function previewFromFile(files) {
-  const file = Array.isArray(files) ? files[0] : files
+  const file = Array.isArray(files) ? files[0] : (files instanceof File ? files : null)
   if (!file) { imagePreview.value = ''; return }
   const reader = new FileReader()
   reader.onload = e => { imagePreview.value = e.target.result }
@@ -302,5 +309,13 @@ async function handleCreate() {
   }
 }
 
-onMounted(() => groups.fetchMyGroups())
+onMounted(async () => {
+  await groups.fetchMyGroups()
+  const hasOwned = groups.myGroups.some(g => g.owner_id === auth.user?.id)
+  if (hasOwned && route.name === 'CriarGrupo') {
+    router.replace({ name: 'MeusGrupos2' })
+  } else if (!hasOwned && route.name === 'MeusGrupos2') {
+    router.replace({ name: 'CriarGrupo' })
+  }
+})
 </script>
