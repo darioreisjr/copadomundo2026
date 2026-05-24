@@ -44,19 +44,44 @@ export const useNotificationsStore = defineStore('notifications', () => {
       sealRewardsStore.rewards.map(r => [r.event_key, r.label])
     )
 
-    const [{ data: invites }, { data: sealRows }] = await Promise.all([
+    const groupsStore = useGroupsStore()
+    if (!groupsStore.myGroups.length) {
+      await groupsStore.fetchMyGroups()
+    }
+    const ownerGroupIds = groupsStore.myGroups
+      .filter(g => g.owner_id === userId)
+      .map(g => g.id)
+
+    const queries = [
       supabase
         .from('group_members')
         .select('id, group_id, created_at, groups(id, name), profiles:invited_by(name, username, nome_fantasia)')
         .eq('user_id', userId)
-        .eq('status', 'pending'),
+        .eq('status', 'pending')
+        .not('invited_by', 'is', null),
       supabase
         .from('user_seals')
         .select('id, event_key, seals, awarded_at')
         .eq('user_id', userId)
         .order('awarded_at', { ascending: false })
         .limit(30),
-    ])
+    ]
+
+    if (ownerGroupIds.length) {
+      queries.push(
+        supabase
+          .from('group_members')
+          .select('id, group_id, user_id, created_at, groups(id, name), profiles:user_id(name, username, nome_fantasia)')
+          .is('invited_by', null)
+          .eq('status', 'pending')
+          .in('group_id', ownerGroupIds)
+      )
+    }
+
+    const results = await Promise.all(queries)
+    const invites = results[0].data
+    const sealRows = results[1].data
+    const requests = results[2]?.data ?? []
 
     const readIds = _loadReadIds()
 
@@ -72,8 +97,25 @@ export const useNotificationsStore = defineStore('notifications', () => {
           title: `Convite para ${inv.groups?.name ?? 'um grupo'}`,
           description: `Convidado por ${inviterDisplay}`,
           timestamp: new Date(inv.created_at),
-          read: false, // convite pendente nunca é lido até aceitar/recusar
+          read: false,
           memberId: inv.id,
+          sealsAmount: null,
+          sealLabel: null,
+        }
+      }),
+      ...(requests || []).map(req => {
+        const id = `request-${req.id}`
+        const p = req.profiles
+        const displayName = p?.nome_fantasia || p?.name || (p?.username ? `@${p.username}` : 'Alguém')
+        const displayHandle = p?.username ? `@${p.username}` : displayName
+        return {
+          id,
+          type: 'join_request',
+          title: `Solicitação para ${req.groups?.name ?? 'seu grupo'}`,
+          description: `${displayHandle} quer entrar no grupo`,
+          timestamp: new Date(req.created_at),
+          read: false,
+          memberId: req.id,
           sealsAmount: null,
           sealLabel: null,
         }
@@ -137,9 +179,24 @@ export const useNotificationsStore = defineStore('notifications', () => {
     await fetchAll()
   }
 
+  async function acceptJoinRequest(memberId) {
+    const groupsStore = useGroupsStore()
+    await groupsStore.acceptJoinRequest(memberId)
+    notifications.value = notifications.value.filter(n => n.memberId !== memberId)
+    await fetchAll()
+  }
+
+  async function rejectJoinRequest(memberId) {
+    const groupsStore = useGroupsStore()
+    await groupsStore.rejectJoinRequest(memberId)
+    notifications.value = notifications.value.filter(n => n.memberId !== memberId)
+    await fetchAll()
+  }
+
   return {
     notifications, loading,
     unreadCount, unreadNotifications, readNotifications,
     fetchAll, markAllAsRead, acceptInvite, declineInvite,
+    acceptJoinRequest, rejectJoinRequest,
   }
 })

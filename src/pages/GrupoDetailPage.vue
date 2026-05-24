@@ -282,9 +282,62 @@
           <!-- Cards de membros -->
           <v-progress-linear v-if="membersLoading" indeterminate color="green-darken-3" class="mb-3" />
 
-          <v-row v-if="groups.groupMembers.length">
+          <!-- Seção: Solicitações de entrada (só dono vê) -->
+          <template v-if="isOwner && joinRequests.length">
+            <div class="text-subtitle-2 font-weight-medium mb-3 d-flex align-center gap-2">
+              <v-icon icon="mdi-account-clock" color="orange-darken-2" size="18" />
+              Solicitações de entrada
+              <v-chip size="x-small" color="orange-darken-2" variant="tonal">{{ joinRequests.length }}</v-chip>
+            </div>
+            <v-card elevation="1" rounded="lg" class="mb-6">
+              <v-list lines="two" class="pa-0">
+                <template v-for="(req, idx) in joinRequests" :key="req.id">
+                  <v-divider v-if="idx > 0" />
+                  <v-list-item class="py-2">
+                    <template #prepend>
+                      <v-avatar color="orange-darken-2" size="40" class="mr-3">
+                        <v-img v-if="req.profiles?.avatar_url" :src="req.profiles.avatar_url" cover />
+                        <span v-else class="text-white font-weight-bold text-body-2">
+                          {{ (req.profiles?.name || '?')[0].toUpperCase() }}
+                        </span>
+                      </v-avatar>
+                    </template>
+                    <v-list-item-title class="font-weight-medium">{{ req.profiles?.name ?? '—' }}</v-list-item-title>
+                    <v-list-item-subtitle v-if="req.profiles?.username">@{{ req.profiles.username }}</v-list-item-subtitle>
+                    <template #append>
+                      <div class="d-flex gap-2">
+                        <v-btn
+                          size="small"
+                          color="green-darken-2"
+                          variant="tonal"
+                          rounded="lg"
+                          :loading="acceptingRequestId === req.id"
+                          @click="handleAcceptRequest(req.id)"
+                        >
+                          Aceitar
+                        </v-btn>
+                        <v-btn
+                          size="small"
+                          color="red"
+                          variant="text"
+                          rounded="lg"
+                          :loading="rejectingRequestId === req.id"
+                          @click="handleRejectRequest(req.id)"
+                        >
+                          Rejeitar
+                        </v-btn>
+                      </div>
+                    </template>
+                  </v-list-item>
+                </template>
+              </v-list>
+            </v-card>
+            <v-divider class="mb-4" />
+          </template>
+
+          <v-row v-if="activeAndInvitedMembers.length">
             <v-col
-              v-for="member in groups.groupMembers"
+              v-for="member in activeAndInvitedMembers"
               :key="member.id"
               cols="6"
               sm="4"
@@ -310,7 +363,7 @@
                     size="x-small"
                     variant="tonal"
                   >
-                    {{ member.status === 'active' ? 'Ativo' : 'Pendente' }}
+                    {{ member.status === 'active' ? 'Ativo' : 'Convite pendente' }}
                   </v-chip>
                 </div>
 
@@ -669,6 +722,19 @@ const editImagePreview = ref('')
 const saving = ref(false)
 
 const isOwner = computed(() => group.value?.owner_id === auth.user?.id)
+
+// Solicitações de entrada (pending sem invited_by) — só o dono vê
+const joinRequests = computed(() =>
+  (groups.groupMembers || []).filter(m => m.status === 'pending' && !m.invited_by)
+)
+// Membros ativos + convites pendentes (com invited_by) — exibidos nos cards
+const activeAndInvitedMembers = computed(() =>
+  (groups.groupMembers || []).filter(m => m.status === 'active' || (m.status === 'pending' && m.invited_by))
+)
+
+const acceptingRequestId = ref(null)
+const rejectingRequestId = ref(null)
+
 const hasChanges = computed(() => {
   if (!group.value) return false
   return (
@@ -815,6 +881,32 @@ async function handleRemove(userId) {
     toast.notify(e.message, 'error')
   } finally {
     removingId.value = null
+  }
+}
+
+async function handleAcceptRequest(memberId) {
+  acceptingRequestId.value = memberId
+  try {
+    await groups.acceptJoinRequest(memberId)
+    toast.notify('Solicitação aceita! O usuário agora é membro do grupo.', 'success')
+    await loadMembers()
+  } catch (e) {
+    toast.notify(e.message, 'error')
+  } finally {
+    acceptingRequestId.value = null
+  }
+}
+
+async function handleRejectRequest(memberId) {
+  rejectingRequestId.value = memberId
+  try {
+    await groups.rejectJoinRequest(memberId)
+    toast.notify('Solicitação rejeitada.', 'info')
+    await loadMembers()
+  } catch (e) {
+    toast.notify(e.message, 'error')
+  } finally {
+    rejectingRequestId.value = null
   }
 }
 

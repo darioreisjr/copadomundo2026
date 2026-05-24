@@ -263,6 +263,16 @@ export const useGroupsStore = defineStore('groups', () => {
     return data || []
   }
 
+  async function searchGroups(query) {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*, group_members(id, user_id, status, invited_by)')
+      .ilike('name', `%${query}%`)
+      .limit(10)
+    if (error) throw error
+    return data || []
+  }
+
   async function fetchRandomPublicGroup() {
     const { data, error } = await supabase
       .from('groups')
@@ -283,11 +293,44 @@ export const useGroupsStore = defineStore('groups', () => {
     await fetchMyGroups()
   }
 
+  async function requestToJoin(groupId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase
+      .from('group_members')
+      .insert({ group_id: groupId, user_id: user.id, status: 'pending', invited_by: null })
+    if (error) {
+      if (error.code === '23505') {
+        const err = new Error('Você já enviou uma solicitação ou é membro deste grupo.')
+        err.code = 'already_member'
+        throw err
+      }
+      throw error
+    }
+  }
+
+  async function acceptJoinRequest(memberId) {
+    const { error } = await supabase
+      .from('group_members')
+      .update({ status: 'active' })
+      .eq('id', memberId)
+    if (error) throw error
+    await fetchMyGroups()
+  }
+
+  async function rejectJoinRequest(memberId) {
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('id', memberId)
+    if (error) throw error
+  }
+
   return {
     myGroups, pendingInvites, groupMembers, groupRanking, loading,
     fetchMyGroups, fetchPendingInvites, createGroup, uploadGroupImage, inviteByUsername,
     acceptInvite, declineInvite, removeFromGroup, deleteGroup,
     fetchGroupMembers, fetchGroupRanking, fetchGroup, updateGroup,
-    searchPublicGroups, fetchRandomPublicGroup, joinGroup, leaveGroup,
+    searchPublicGroups, searchGroups, fetchRandomPublicGroup, joinGroup, leaveGroup,
+    requestToJoin, acceptJoinRequest, rejectJoinRequest,
   }
 })

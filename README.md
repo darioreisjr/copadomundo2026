@@ -78,7 +78,7 @@ O painel administrativo oferece:
 - Listagem de jogos com filtros por status e fase
 - Palpite de placar por jogo: primeira vez gratuita; após salvar, a tela exibe o placar em modo somente leitura — atualizar um palpite existente custa 30 selos (confirmação via diálogo antes do débito); placar centralizado nos campos de entrada; feedback de sucesso via toast no canto inferior direito
 - **Especialista IA:** botão "Chamar Especialista" na tela de palpite custa **20 selos** e consulta o histórico real de confrontos entre as duas seleções em Copas do Mundo (via OpenFootball, 1930–2022), passando os dados verificados ao Google Gemini para gerar análise estatística com vitórias, empates, gols, probabilidades de cada resultado e sugestão de placar; a análise é gerada **uma única vez** e armazenada em cache no banco (tabela `match_analyses`) — usuários subsequentes reutilizam o resultado sem nova chamada à IA; o usuário que já pagou tem a análise carregada automaticamente ao retornar à página e o botão fica desabilitado (consulta registrada em `user_seals` com `event_key = 'ai_expert_called'`)
-- **Grupos privados e públicos:** crie grupos com nome, descrição, imagem (URL ou upload) e privacidade (privado/público); convide participantes por `@username`; convites recebidos aparecem em "Grupos" com opção de aceitar ou recusar; ranking privado do grupo calculado automaticamente a partir dos palpites reais dos membros — todos os membros ativos aparecem no ranking mesmo sem palpites (valores zerados); busca de grupos públicos por nome e descoberta de grupo aleatório em "Grupos" com entrada direta via botão "Entrar" e confirmação; membros não-donos podem sair do grupo digitando "SAIR DO GRUPO" para confirmar; remoção de membro exige digitação do nome exato do usuário para confirmar; ranking do grupo visível apenas para membros; **"Meus Grupos"** (`/meus-grupos`) lista exclusivamente os grupos criados pelo próprio usuário com dialog de criação integrado — ao clicar num grupo abre `/meus-grupos/:id` com duas abas exclusivas para o dono: **Membros** (convidar por `@username`, visualizar status ativo/pendente e remover membros) e **Gerenciar** (editar nome, descrição, visibilidade e imagem do grupo com botão "Salvar alterações" habilitado apenas quando há mudanças reais; excluir grupo na zona de perigo); **"Grupos"** (`/grupos`) lista todos os grupos em que o usuário participa com pesquisa e botão "Encontrar Grupo" — ao entrar em um grupo exibe apenas a aba Ranking; **modal de criação responsivo:** layout do modal adaptado para mobile com seções de privacidade e imagem centralizadas, botões de toggle em largura total e espaçamento otimizado
+- **Grupos privados e públicos:** crie grupos com nome, descrição, imagem (URL ou upload) e privacidade (privado/público); convide participantes por `@username`; ranking privado do grupo calculado automaticamente a partir dos palpites reais dos membros — todos os membros ativos aparecem no ranking mesmo sem palpites (valores zerados); busca de grupos (públicos e privados) por nome e descoberta de grupo aleatório em "Grupos"; grupos públicos permitem entrada direta via botão "Entrar" e confirmação; **grupos privados exigem solicitação de entrada** — botão "Solicitar" envia pedido ao dono, que aparece como chip "Aguardando" até aprovação ou rejeição; membros não-donos podem sair do grupo digitando "SAIR DO GRUPO" para confirmar; remoção de membro exige digitação do nome exato do usuário para confirmar; ranking do grupo visível apenas para membros; **"Meus Grupos"** (`/meus-grupos`) lista exclusivamente os grupos criados pelo próprio usuário com dialog de criação integrado — ao clicar num grupo abre `/meus-grupos/:id` com duas abas exclusivas para o dono: **Membros** (convidar por `@username`; seção separada de **Solicitações de entrada** com botões Aceitar/Rejeitar por linha; membros ativos e convites pendentes exibidos em cards com status) e **Gerenciar** (editar nome, descrição, visibilidade e imagem do grupo com botão "Salvar alterações" habilitado apenas quando há mudanças reais; excluir grupo na zona de perigo); **"Grupos"** (`/grupos`) lista todos os grupos em que o usuário participa com pesquisa e botão "Encontrar Grupo" — ao entrar em um grupo exibe apenas a aba Ranking; **modal de criação responsivo:** layout do modal adaptado para mobile com seções de privacidade e imagem centralizadas, botões de toggle em largura total e espaçamento otimizado
 - Ranking global com medalhas para o top 3; nomes de todos os participantes exibidos corretamente (policy RLS de leitura pública de perfis); **responsivo no mobile**: exibe apenas Posição, Nome e Pontos na tabela — tocar em qualquer linha abre um modal com todos os detalhes (Placares exatos, Vencedor, Empates, Palpites); legenda "Entenda a pontuação" abaixo dos critérios de desempate explica cada coluna
 - **Página "Minha Conta"** acessível pelo menu hamburguer, com 4 abas:
   - **Dados Pessoais:** seleção de avatar (clique no avatar ou no ícone de câmera para abrir o catálogo); editar nome, data de nascimento (validação de maioridade ≥ 18 anos), telefone, **username** (identificador único com `@`, validação de formato e disponibilidade em tempo real) e **nome fantasia** (apelido de exibição no bolão); e-mail somente leitura; botão "Salvar alterações" habilitado apenas quando há mudanças reais em relação ao que está salvo
@@ -86,7 +86,7 @@ O painel administrativo oferece:
   - **Preferências:** toggles de notificações por e-mail e por ranking com salvamento automático ao alternar
   - **Excluir Conta:** zona de perigo com checkbox de confirmação + diálogo de confirmação final; exclusão em cascata via RPC SQL
 
-- **Sistema de Notificações:** sino no app bar com badge de contagem de não lidas; painel dropdown com duas abas (Não lidas / Lidas); convites de grupo recebidos ficam em "Não lidas" até o usuário aceitar ou recusar; selos ganhos aparecem automaticamente; ao clicar em qualquer notificação abre um popup de detalhe — convites exibem botões Aceitar / Recusar, selos exibem o evento e a quantidade; estado de leitura persistido no localStorage por usuário
+- **Sistema de Notificações:** sino no app bar com badge de contagem de não lidas; painel dropdown com duas abas (Não lidas / Lidas); convites de grupo recebidos ficam em "Não lidas" até aceitar ou recusar; **solicitações de entrada em grupos privados** aparecem para o dono com botões Aceitar/Rejeitar inline e em popup de detalhe; selos ganhos aparecem automaticamente; ao clicar em qualquer notificação abre um popup de detalhe — convites e solicitações exibem botões de ação, selos exibem o evento e a quantidade; estado de leitura persistido no localStorage por usuário
 
 ### Admin
 - Importação dos jogos reais da Copa 2026 em ~5s (antes levava 20-40s)
@@ -339,7 +339,7 @@ Grupos privados ou públicos de ranking. Aplicado via [supabase/grupos-schema.sq
 | image_url | text | URL da imagem do grupo (opcional) |
 | created_at | timestamptz | — |
 
-> RLS: dono e membros leem; grupos públicos são visíveis a qualquer autenticado; somente o dono gerencia.
+> RLS: dono e membros leem; grupos públicos e privados são visíveis para descoberta por qualquer autenticado; somente o dono gerencia.
 > Storage: bucket público `group-images` para upload de imagens de grupo.
 
 #### `group_members`
@@ -351,10 +351,11 @@ Membros e convites pendentes de cada grupo.
 | group_id | uuid | FK → groups |
 | user_id | uuid | FK → profiles |
 | status | text | `pending` \| `active` |
-| invited_by | uuid | FK → profiles (quem convidou) |
+| invited_by | uuid | FK → profiles (quem convidou — `null` quando é solicitação de entrada do próprio usuário) |
 | created_at | timestamptz | — |
 
 > Unique constraint em `(group_id, user_id)`.
+> Discriminante: `invited_by IS NULL + status = 'pending'` → solicitação de entrada; `invited_by IS NOT NULL + status = 'pending'` → convite do dono.
 > RLS usa funções `is_group_owner` e `is_group_member` com `security definer` para evitar recursão infinita entre as policies das duas tabelas.
 
 ### Funções SQL principais
@@ -418,6 +419,7 @@ cp .env.example .env
 # 3. supabase/coins-schema.sql
 # 4. supabase/seals-awards-schema.sql
 # 5. supabase/match-analyses-schema.sql
+# 6. supabase/grupos-schema.sql
 
 # 5. Adicione a constraint de unicidade (se o banco já existia)
 # Execute no SQL Editor do Supabase:
@@ -504,7 +506,8 @@ npm run preview  # Preview do build local
 | Acessar painel admin | ❌ | ✅ |
 | Ver palpites de outros | ❌ | ✅ |
 | Criar grupos e convidar membros | ✅ | ✅ |
-| Aceitar/recusar convites de grupo | ✅ | ✅ |
+| Solicitar entrada em grupo privado | ✅ | ✅ |
+| Aceitar/recusar convites e solicitações | ✅ (dono) | ✅ |
 | Ver ranking privado do grupo | ✅ | ✅ |
 | Desbloquear avatares com selos | ✅ | ✅ |
 | Gerenciar avatares do catálogo | ❌ | ✅ |

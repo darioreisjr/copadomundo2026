@@ -181,15 +181,19 @@
                   </v-list-item-subtitle>
                   <template #append>
                     <v-btn
-                      v-if="!isAlreadyMember(result)"
+                      v-if="!isAlreadyMember(result) && !hasPendingRequest(result)"
                       size="small"
-                      color="green-darken-2"
+                      :color="result.is_public ? 'green-darken-2' : 'blue-darken-2'"
                       variant="tonal"
                       rounded="lg"
                       @click.stop="openJoinConfirm(result)"
                     >
-                      Entrar
+                      {{ result.is_public ? 'Entrar' : 'Solicitar' }}
                     </v-btn>
+                    <v-chip v-else-if="hasPendingRequest(result)" size="small" color="orange-darken-2" variant="tonal">
+                      <v-icon start size="x-small" icon="mdi-clock-outline" />
+                      Aguardando
+                    </v-chip>
                     <v-chip v-else size="small" color="green-darken-2" variant="tonal">Membro</v-chip>
                   </template>
                 </v-list-item>
@@ -212,21 +216,29 @@
     <!-- Dialog: confirmar entrada no grupo -->
     <v-dialog v-model="joinConfirmDialog" max-width="400" persistent>
       <v-card rounded="lg">
-        <v-card-title class="pt-4 px-4 font-weight-bold">Entrar no grupo?</v-card-title>
+        <v-card-title class="pt-4 px-4 font-weight-bold d-flex align-center gap-2">
+          <v-icon :icon="joiningGroup?.is_public ? 'mdi-account-group' : 'mdi-lock-outline'" :color="joiningGroup?.is_public ? 'green-darken-2' : 'blue-darken-2'" />
+          {{ joiningGroup?.is_public ? 'Entrar no grupo?' : 'Solicitar entrada?' }}
+        </v-card-title>
         <v-card-text class="px-4">
-          Tem certeza que deseja entrar no grupo <strong>{{ joiningGroup?.name }}</strong>?
+          <template v-if="joiningGroup?.is_public">
+            Tem certeza que deseja entrar no grupo <strong>{{ joiningGroup?.name }}</strong>?
+          </template>
+          <template v-else>
+            O grupo <strong>{{ joiningGroup?.name }}</strong> é privado. Sua solicitação será enviada ao dono do grupo para aprovação.
+          </template>
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
           <v-btn variant="text" rounded="lg" @click="joinConfirmDialog = false">Cancelar</v-btn>
           <v-btn
-            color="green-darken-2"
+            :color="joiningGroup?.is_public ? 'green-darken-2' : 'blue-darken-2'"
             variant="tonal"
             rounded="lg"
             :loading="joiningLoading"
             @click="confirmJoin"
           >
-            Confirmar
+            {{ joiningGroup?.is_public ? 'Entrar' : 'Enviar solicitação' }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -279,7 +291,12 @@ function activeMemberCount(group) {
 
 function isAlreadyMember(group) {
   const uid = auth.user?.id
-  return group.owner_id === uid || (group.group_members || []).some(m => m.user_id === uid)
+  return group.owner_id === uid || (group.group_members || []).some(m => m.user_id === uid && m.status === 'active')
+}
+
+function hasPendingRequest(group) {
+  const uid = auth.user?.id
+  return (group.group_members || []).some(m => m.user_id === uid && m.status === 'pending')
 }
 
 function openJoinConfirm(group) {
@@ -290,11 +307,19 @@ function openJoinConfirm(group) {
 async function confirmJoin() {
   joiningLoading.value = true
   try {
-    await groups.joinGroup(joiningGroup.value.id)
-    toast.notify(`Você entrou no grupo ${joiningGroup.value.name}!`, 'success')
-    joinConfirmDialog.value = false
-    searchDialog.value = false
-    router.push({ name: 'GrupoDetail', params: { id: joiningGroup.value.id } })
+    if (joiningGroup.value.is_public) {
+      await groups.joinGroup(joiningGroup.value.id)
+      toast.notify(`Você entrou no grupo ${joiningGroup.value.name}!`, 'success')
+      joinConfirmDialog.value = false
+      searchDialog.value = false
+      router.push({ name: 'GrupoDetail', params: { id: joiningGroup.value.id } })
+    } else {
+      await groups.requestToJoin(joiningGroup.value.id)
+      toast.notify('Solicitação enviada! Aguarde a aprovação do dono do grupo.', 'success')
+      joinConfirmDialog.value = false
+      // Atualiza os resultados para refletir a solicitação enviada
+      searchResults.value = await groups.searchGroups(searchQuery.value.trim() || joiningGroup.value.name)
+    }
   } catch (e) {
     toast.notify(e.message, 'error')
   } finally {
@@ -307,7 +332,7 @@ async function handleSearch() {
   searching.value = true
   searched.value = false
   try {
-    searchResults.value = await groups.searchPublicGroups(searchQuery.value.trim())
+    searchResults.value = await groups.searchGroups(searchQuery.value.trim())
     searched.value = true
   } catch (e) {
     toast.notify(e.message, 'error')

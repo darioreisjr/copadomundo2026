@@ -81,6 +81,12 @@ create policy "group_members: user updates own" on public.group_members
   for update using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+-- Dono do grupo pode atualizar status de membros (aceitar/gerenciar solicitações)
+drop policy if exists "group_members: owner updates members" on public.group_members;
+create policy "group_members: owner updates members" on public.group_members
+  for update using (public.is_group_owner(group_id, auth.uid()))
+  with check (public.is_group_owner(group_id, auth.uid()));
+
 create policy "group_members: owner deletes members" on public.group_members
   for delete using (public.is_group_owner(group_id, auth.uid()));
 
@@ -96,6 +102,19 @@ create policy "group_members: self join public group" on public.group_members
     and exists (
       select 1 from public.groups
       where id = group_id and is_public = true
+    )
+  );
+
+-- Usuário autenticado envia solicitação de entrada em grupo privado
+drop policy if exists "group_members: self request private group" on public.group_members;
+create policy "group_members: self request private group" on public.group_members
+  for insert with check (
+    auth.uid() = user_id
+    and status = 'pending'
+    and invited_by is null
+    and exists (
+      select 1 from public.groups
+      where id = group_id and is_public = false
     )
   );
 
@@ -116,6 +135,14 @@ create policy "groups: members read" on public.groups
 -- Qualquer autenticado pode ler grupos públicos (busca/descoberta)
 create policy "groups: public groups readable" on public.groups
   for select using (is_public = true);
+
+-- Qualquer autenticado pode descobrir grupos privados (nome, descrição, imagem) para busca
+drop policy if exists "groups: discover private groups" on public.groups;
+create policy "groups: discover private groups" on public.groups
+  for select using (
+    is_public = false
+    and auth.uid() is not null
+  );
 
 create policy "groups: owner manages" on public.groups
   for all using (auth.uid() = owner_id)

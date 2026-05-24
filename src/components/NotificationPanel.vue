@@ -90,6 +90,8 @@
               @open="openDetail"
               @accept="handleAccept"
               @decline="handleDecline"
+              @accept-request="handleAcceptRequest"
+              @reject-request="handleRejectRequest"
             />
           </div>
         </v-window-item>
@@ -111,6 +113,8 @@
               @open="openDetail"
               @accept="handleAccept"
               @decline="handleDecline"
+              @accept-request="handleAcceptRequest"
+              @reject-request="handleRejectRequest"
             />
           </div>
         </v-window-item>
@@ -136,7 +140,7 @@
       <!-- Área do ícone grande -->
       <div style="background:rgba(0,0,0,0.25);padding:52px 24px 36px;text-align:center">
         <v-icon
-          :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : 'mdi-seal'"
+          :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : selectedNotif.type === 'join_request' ? 'mdi-account-plus' : 'mdi-seal'"
           size="80"
           color="white"
         />
@@ -148,12 +152,12 @@
         <!-- Categoria + tempo -->
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
           <v-icon
-            :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : 'mdi-seal'"
+            :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : selectedNotif.type === 'join_request' ? 'mdi-account-plus' : 'mdi-seal'"
             size="13"
             style="color:rgba(255,255,255,0.5)"
           />
           <span style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">
-            {{ selectedNotif.type === 'invite' ? 'CONVITES' : 'SELOS' }}
+            {{ selectedNotif.type === 'invite' ? 'CONVITES' : selectedNotif.type === 'join_request' ? 'SOLICITAÇÕES' : 'SELOS' }}
           </span>
           <span style="color:rgba(255,255,255,0.4);font-size:11px">· {{ relativeTime(selectedNotif.timestamp) }} atrás</span>
         </div>
@@ -190,6 +194,32 @@
           </div>
           <div v-else style="color:rgba(255,255,255,0.4);font-size:12px">
             Este convite já foi processado.
+          </div>
+        </template>
+
+        <template v-else-if="selectedNotif.type === 'join_request'">
+          <div style="color:rgba(255,255,255,0.65);font-size:14px;margin-bottom:24px">
+            {{ selectedNotif.description }}
+          </div>
+          <div style="display:flex;gap:12px">
+            <v-btn
+              color="green-lighten-1"
+              variant="tonal"
+              rounded="lg"
+              :loading="accepting === selectedNotif.memberId"
+              @click="handleAcceptRequest(selectedNotif.memberId)"
+            >
+              Aceitar
+            </v-btn>
+            <v-btn
+              color="red-lighten-2"
+              variant="text"
+              rounded="lg"
+              :loading="declining === selectedNotif.memberId"
+              @click="handleRejectRequest(selectedNotif.memberId)"
+            >
+              Rejeitar
+            </v-btn>
           </div>
         </template>
 
@@ -274,6 +304,32 @@ async function handleDecline(memberId) {
   }
 }
 
+async function handleAcceptRequest(memberId) {
+  accepting.value = memberId
+  try {
+    await notifStore.acceptJoinRequest(memberId)
+    toast.notify('Solicitação aceita! O usuário agora é membro do grupo.', 'success')
+    detailOpen.value = false
+  } catch (e) {
+    toast.notify(e.message || 'Erro ao aceitar solicitação.', 'error')
+  } finally {
+    accepting.value = null
+  }
+}
+
+async function handleRejectRequest(memberId) {
+  declining.value = memberId
+  try {
+    await notifStore.rejectJoinRequest(memberId)
+    toast.notify('Solicitação rejeitada.', 'info')
+    detailOpen.value = false
+  } catch (e) {
+    toast.notify(e.message || 'Erro ao rejeitar solicitação.', 'error')
+  } finally {
+    declining.value = null
+  }
+}
+
 onMounted(() => {
   notifStore.fetchAll()
 })
@@ -285,11 +341,12 @@ const NotifRow = defineComponent({
     accepting: { type: String, default: null },
     declining: { type: String, default: null },
   },
-  emits: ['open', 'accept', 'decline'],
+  emits: ['open', 'accept', 'decline', 'accept-request', 'reject-request'],
   setup(props, { emit }) {
     return () => {
       const n = props.notif
       const isInvite = n.type === 'invite'
+      const isRequest = n.type === 'join_request'
       const diff = Date.now() - n.timestamp.getTime()
       const mins = Math.floor(diff / 60000)
       let timeStr = 'agora'
@@ -297,29 +354,25 @@ const NotifRow = defineComponent({
       else if (mins >= 60 && mins < 1440) timeStr = `${Math.floor(mins / 60)}h`
       else if (mins >= 1440) timeStr = `${Math.floor(mins / 1440)}d`
 
-      return h('div', {
-        style: 'border-bottom:1px solid rgba(255,255,255,0.08);padding:12px 16px;cursor:pointer',
-        onClick: () => emit('open', n),
-      }, [
+      const iconName = isInvite ? 'mdi-email-outline' : isRequest ? 'mdi-account-plus' : 'mdi-seal'
+      const categoryLabel = isInvite ? 'CONVITES' : isRequest ? 'SOLICITAÇÕES' : 'SELOS'
+
+      const children = [
         h('div', { style: 'display:flex;align-items:flex-start;gap:10px' }, [
           h('div', { style: 'margin-top:2px;flex-shrink:0' }, [
-            h('v-icon', {
-              icon: isInvite ? 'mdi-email-outline' : 'mdi-seal',
-              color: '#ffffff',
-              size: 20,
-            }),
+            h('v-icon', { icon: iconName, color: '#ffffff', size: 20 }),
           ]),
           h('div', { style: 'flex:1;min-width:0' }, [
             h('div', { style: 'display:flex;align-items:center;gap:4px;margin-bottom:4px' }, [
               h('span', {
                 style: 'color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase',
-              }, isInvite ? 'CONVITES' : 'SELOS'),
+              }, categoryLabel),
               h('span', { style: 'color:rgba(255,255,255,0.45);font-size:10px' }, `· ${timeStr} atrás`),
             ]),
             h('div', {
               style: 'color:#fff;font-size:13px;font-weight:500;line-height:1.3;margin-bottom:2px',
             }, n.title),
-            isInvite
+            (isInvite || isRequest)
               ? h('div', { style: 'color:rgba(255,255,255,0.6);font-size:12px' }, n.description)
               : h('div', {
                   style: 'display:flex;align-items:center;gap:4px',
@@ -329,7 +382,36 @@ const NotifRow = defineComponent({
                 ]),
           ]),
         ]),
-      ])
+      ]
+
+      // Botões inline para solicitações de entrada
+      if (isRequest) {
+        children.push(
+          h('div', { style: 'display:flex;gap:8px;margin-top:8px;padding-left:30px' }, [
+            h('v-btn', {
+              size: 'x-small',
+              color: 'green-lighten-1',
+              variant: 'tonal',
+              rounded: 'lg',
+              loading: props.accepting === n.memberId,
+              onClick: (e) => { e.stopPropagation(); emit('accept-request', n.memberId) },
+            }, () => 'Aceitar'),
+            h('v-btn', {
+              size: 'x-small',
+              color: 'red-lighten-2',
+              variant: 'text',
+              rounded: 'lg',
+              loading: props.declining === n.memberId,
+              onClick: (e) => { e.stopPropagation(); emit('reject-request', n.memberId) },
+            }, () => 'Rejeitar'),
+          ])
+        )
+      }
+
+      return h('div', {
+        style: 'border-bottom:1px solid rgba(255,255,255,0.08);padding:12px 16px;cursor:pointer',
+        onClick: () => emit('open', n),
+      }, children)
     }
   },
 })
