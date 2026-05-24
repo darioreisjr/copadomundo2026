@@ -86,6 +86,8 @@ O painel administrativo oferece:
   - **Preferências:** toggles de notificações por e-mail e por ranking com salvamento automático ao alternar
   - **Excluir Conta:** zona de perigo com checkbox de confirmação + diálogo de confirmação final; exclusão em cascata via RPC SQL
 
+- **Sistema de Notificações:** sino no app bar com badge de contagem de não lidas; painel dropdown com duas abas (Não lidas / Lidas); convites de grupo recebidos ficam em "Não lidas" até o usuário aceitar ou recusar; selos ganhos aparecem automaticamente; ao clicar em qualquer notificação abre um popup de detalhe — convites exibem botões Aceitar / Recusar, selos exibem o evento e a quantidade; estado de leitura persistido no localStorage por usuário
+
 ### Admin
 - Importação dos jogos reais da Copa 2026 em ~5s (antes levava 20-40s)
 - Sincronização inteligente: jogos novos são inseridos, alterados são atualizados, iguais são ignorados
@@ -129,7 +131,8 @@ copa-do-mundo/
     │   ├── groups.js           # Grupos privados/públicos: CRUD (incluindo updateGroup), convites, membros, ranking de grupo
     │   ├── sealRewards.js      # CRUD dos eventos de selos (somente admin)
     │   ├── seals.js            # Concessão de selos ao usuário: baú diário, estado do modal
-    │   └── toast.js            # Notificações globais (snackbar)
+    │   ├── toast.js            # Notificações globais (snackbar)
+  │   └── notifications.js   # Agregação de notificações: convites pendentes e selos ganhos, controle de leitura via localStorage
     ├── composables/
     │   └── useMatchAnalysis.js # Cache do Especialista IA: busca no Supabase ou gera via Gemini e salva
     ├── lib/
@@ -140,7 +143,8 @@ copa-do-mundo/
     ├── components/
     │   ├── AppLayout.vue       # Layout principal: menu lateral (desktop), bottom nav com ícones (mobile), drawer fullscreen do hambúrguer (mobile), footer e toast global
     │   ├── GameCard.vue        # Card reutilizável de jogo com palpite e pontos
-    │   └── SealRewardModal.vue # Modal animado de recompensa de selos (baú diário e outros eventos)
+    │   ├── SealRewardModal.vue    # Modal animado de recompensa de selos (baú diário e outros eventos)
+  │   └── NotificationPanel.vue # Sino de notificações no app bar: convites de grupo e selos ganhos, popup de detalhe ao clicar, badge de não lidas
     └── pages/
         ├── HomePage.vue
         ├── LoginPage.vue        # Layout split-screen redesenhado

@@ -87,6 +87,7 @@
       height="64"
     >
       <v-spacer />
+      <NotificationPanel />
       <v-btn
         :icon="rightDrawer ? 'mdi-close' : 'mdi-menu'"
         elevation="2"
@@ -404,6 +405,7 @@ import { useToastStore }   from '@/stores/toast'
 import { useAvatarsStore } from '@/stores/avatars'
 import { useGroupsStore }  from '@/stores/groups'
 import { useRouter } from 'vue-router'
+import NotificationPanel from '@/components/NotificationPanel.vue'
 
 const { fluid, isPublic } = defineProps({
   fluid: { type: Boolean, default: false },
