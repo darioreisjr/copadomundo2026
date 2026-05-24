@@ -29,61 +29,6 @@
 
     <v-progress-linear v-if="groups.loading" indeterminate color="green-darken-3" class="mb-4" />
 
-    <!-- Convites pendentes -->
-    <template v-if="groups.pendingInvites.length">
-      <div class="text-subtitle-1 font-weight-medium mb-2 d-flex align-center gap-2">
-        <v-icon icon="mdi-email-outline" color="amber-darken-2" size="small" />
-        Convites recebidos
-        <v-chip size="x-small" color="amber-darken-2">{{ groups.pendingInvites.length }}</v-chip>
-      </div>
-
-      <v-row class="mb-6">
-        <v-col
-          v-for="invite in groups.pendingInvites"
-          :key="invite.id"
-          cols="12"
-          sm="6"
-          md="4"
-        >
-          <v-card elevation="2" rounded="lg" border>
-            <v-card-text class="pb-2">
-              <div class="font-weight-bold text-body-1 mb-1">{{ invite.groups?.name }}</div>
-              <div class="text-caption text-medium-emphasis">
-                Convidado por
-                <span class="font-weight-medium">
-                  {{ invite.profiles?.nome_fantasia || invite.profiles?.name || 'alguém' }}
-                  <template v-if="invite.profiles?.username"> (@{{ invite.profiles.username }})</template>
-                </span>
-              </div>
-            </v-card-text>
-            <v-card-actions class="pt-0 px-4 pb-3 gap-2">
-              <v-btn
-                color="green-darken-3"
-                variant="tonal"
-                size="small"
-                rounded="lg"
-                :loading="acceptingId === invite.id"
-                @click="handleAccept(invite.id)"
-              >
-                Aceitar
-              </v-btn>
-              <v-btn
-                color="red"
-                variant="text"
-                size="small"
-                rounded="lg"
-                :loading="decliningId === invite.id"
-                @click="handleDecline(invite.id)"
-              >
-                Recusar
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-col>
-      </v-row>
-      <v-divider class="mb-6" />
-    </template>
-
     <!-- Lista de grupos -->
     <template v-if="groups.myGroups.length">
       <v-row>
@@ -148,7 +93,7 @@
 
     <!-- Estado vazio -->
     <div
-      v-else-if="!groups.loading && !groups.pendingInvites.length"
+      v-else-if="!groups.loading"
       class="empty-state d-flex flex-column align-center justify-center text-center"
       style="min-height: calc(100vh - 120px);"
     >
@@ -302,9 +247,6 @@ const auth = useAuthStore()
 const toast = useToastStore()
 const router = useRouter()
 
-const acceptingId = ref(null)
-const decliningId = ref(null)
-
 const groupFilter = ref('')
 const filteredGroups = computed(() => {
   if (!groupFilter.value?.trim()) return groups.myGroups
@@ -392,31 +334,7 @@ async function handleRandom() {
   }
 }
 
-async function handleAccept(memberId) {
-  acceptingId.value = memberId
-  try {
-    await groups.acceptInvite(memberId)
-    toast.notify('Você entrou no grupo!', 'success')
-  } catch (e) {
-    toast.notify(e.message, 'error')
-  } finally {
-    acceptingId.value = null
-  }
-}
-
-async function handleDecline(memberId) {
-  decliningId.value = memberId
-  try {
-    await groups.declineInvite(memberId)
-    toast.notify('Convite recusado.', 'info')
-  } catch (e) {
-    toast.notify(e.message, 'error')
-  } finally {
-    decliningId.value = null
-  }
-}
-
 onMounted(async () => {
-  await Promise.all([groups.fetchMyGroups(), groups.fetchPendingInvites()])
+  await groups.fetchMyGroups()
 })
 </script>
