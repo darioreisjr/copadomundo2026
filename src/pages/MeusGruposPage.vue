@@ -53,15 +53,21 @@
               class="rounded-t-lg"
             >
               <template #error>
-                <div class="bg-green-darken-4 d-flex align-center justify-center" style="height:120px">
-                  <v-icon icon="mdi-account-group" size="40" color="white" style="opacity:.4" />
+                <div class="bg-green-darken-4 d-flex align-center justify-center rounded-t-lg" style="height:120px">
+                  <v-icon icon="mdi-account-group" size="48" color="white" style="opacity:.35" />
                 </div>
               </template>
             </v-img>
+            <div
+              v-else
+              class="bg-green-darken-4 d-flex align-center justify-center rounded-t-lg"
+              style="height:120px"
+            >
+              <v-icon icon="mdi-account-group" size="48" color="white" style="opacity:.35" />
+            </div>
 
             <v-card-text>
               <div class="d-flex align-center gap-2 mb-1">
-                <v-icon v-if="!group.image_url" icon="mdi-account-group" color="green-darken-3" />
                 <span class="font-weight-bold text-body-1">{{ group.name }}</span>
               </div>
               <div class="d-flex align-center gap-2 mb-1 flex-wrap">

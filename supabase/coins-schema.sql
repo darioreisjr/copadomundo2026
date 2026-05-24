@@ -48,5 +48,6 @@ insert into public.seal_rewards (event_key, label, description, seals, icon) val
   ('winner_hit',     'Acerto do Vencedor',      'Acertou quem venceu mas não o placar exato',       20, 'mdi-trophy'),
   ('draw_hit',       'Acerto de Empate',        'Acertou que o jogo terminaria empatado',           20, 'mdi-handshake'),
   ('bet_sent',       'Palpite Enviado',         'Bonus por participar e enviar um palpite',          5, 'mdi-soccer'),
-  ('knockout_bonus', 'Bônus Mata-Mata',         'Bonus extra para jogos da fase eliminatória',      30, 'mdi-sword-cross')
+  ('knockout_bonus', 'Bônus Mata-Mata',         'Bonus extra para jogos da fase eliminatória',      30, 'mdi-sword-cross'),
+  ('group_created',  'Grupo Criado',            'Você criou um novo grupo no bolão',                 0, 'mdi-account-group')
 on conflict (event_key) do nothing;

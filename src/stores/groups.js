@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/auth'
 
 export const useGroupsStore = defineStore('groups', () => {
   const myGroups = ref([])
@@ -63,6 +64,15 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function createGroup({ name, description, is_public, image_url }) {
+    const auth = useAuthStore()
+    const COST = 100
+
+    if ((auth.profile?.total_seals ?? 0) < COST) {
+      const err = new Error('Selos insuficientes. Você precisa de 100 selos para criar um grupo.')
+      err.code = 'insufficient_seals'
+      throw err
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     const { data: group, error } = await supabase
       .from('groups')
@@ -76,8 +86,24 @@ export const useGroupsStore = defineStore('groups', () => {
     const { error: e2 } = await supabase
       .from('group_members')
       .insert({ group_id: group.id, user_id: user.id, status: 'active', invited_by: user.id })
-
     if (e2) throw e2
+
+    // Deduz do saldo
+    const { error: e3 } = await supabase
+      .from('profiles')
+      .update({ total_seals: (auth.profile?.total_seals ?? 0) - COST })
+      .eq('id', user.id)
+    if (e3) throw e3
+
+    // Notificação personalizada com o nome do grupo
+    await supabase.from('notifications').insert({
+      user_id: user.id,
+      type: 'group_created',
+      title: `Grupo "${name}" criado!`,
+      description: `Você utilizou 100 selos para criar o grupo. Convide seus amigos!`,
+    })
+
+    await auth.fetchProfile()
     await fetchMyGroups()
     return group
   }

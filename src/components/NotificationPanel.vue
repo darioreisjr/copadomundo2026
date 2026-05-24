@@ -140,7 +140,7 @@
       <!-- Área do ícone grande -->
       <div style="background:rgba(0,0,0,0.25);padding:52px 24px 36px;text-align:center">
         <v-icon
-          :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : selectedNotif.type === 'join_request' ? 'mdi-account-plus' : 'mdi-seal'"
+          :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : selectedNotif.type === 'join_request' ? 'mdi-account-plus' : selectedNotif.type === 'group_created' ? 'mdi-account-group' : 'mdi-seal'"
           size="80"
           color="white"
         />
@@ -152,12 +152,12 @@
         <!-- Categoria + tempo -->
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
           <v-icon
-            :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : selectedNotif.type === 'join_request' ? 'mdi-account-plus' : 'mdi-seal'"
+            :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : selectedNotif.type === 'join_request' ? 'mdi-account-plus' : selectedNotif.type === 'group_created' ? 'mdi-account-group' : 'mdi-seal'"
             size="13"
             style="color:rgba(255,255,255,0.5)"
           />
           <span style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">
-            {{ selectedNotif.type === 'invite' ? 'CONVITES' : selectedNotif.type === 'join_request' ? 'SOLICITAÇÕES' : 'SELOS' }}
+            {{ selectedNotif.type === 'invite' ? 'CONVITES' : selectedNotif.type === 'join_request' ? 'SOLICITAÇÕES' : selectedNotif.type === 'group_created' ? 'GRUPOS' : 'SELOS' }}
           </span>
           <span style="color:rgba(255,255,255,0.4);font-size:11px">· {{ relativeTime(selectedNotif.timestamp) }} atrás</span>
         </div>
@@ -220,6 +220,12 @@
             >
               Rejeitar
             </v-btn>
+          </div>
+        </template>
+
+        <template v-else-if="selectedNotif.type === 'group_created'">
+          <div style="color:rgba(255,255,255,0.65);font-size:14px;margin-bottom:8px">
+            {{ selectedNotif.description }}
           </div>
         </template>
 
@@ -355,8 +361,9 @@ const NotifRow = defineComponent({
       else if (mins >= 60 && mins < 1440) timeStr = `${Math.floor(mins / 60)}h`
       else if (mins >= 1440) timeStr = `${Math.floor(mins / 1440)}d`
 
-      const iconName = isInvite ? 'mdi-email-outline' : isRequest ? 'mdi-account-plus' : isRequestResult ? (n.title.includes('aceita') ? 'mdi-account-check' : 'mdi-account-remove') : 'mdi-seal'
-      const categoryLabel = isInvite ? 'CONVITES' : isRequest ? 'SOLICITAÇÕES' : isRequestResult ? 'GRUPOS' : 'SELOS'
+      const isGroupCreated = n.type === 'group_created'
+      const iconName = isInvite ? 'mdi-email-outline' : isRequest ? 'mdi-account-plus' : isRequestResult ? (n.title.includes('aceita') ? 'mdi-account-check' : 'mdi-account-remove') : isGroupCreated ? 'mdi-account-group' : 'mdi-seal'
+      const categoryLabel = isInvite ? 'CONVITES' : isRequest ? 'SOLICITAÇÕES' : (isRequestResult || isGroupCreated) ? 'GRUPOS' : 'SELOS'
 
       const children = [
         h('div', { style: 'display:flex;align-items:flex-start;gap:10px' }, [
@@ -373,7 +380,7 @@ const NotifRow = defineComponent({
             h('div', {
               style: 'color:#fff;font-size:13px;font-weight:500;line-height:1.3;margin-bottom:2px',
             }, n.title),
-            (isInvite || isRequest || isRequestResult)
+            (isInvite || isRequest || isRequestResult || isGroupCreated)
               ? h('div', { style: 'color:rgba(255,255,255,0.6);font-size:12px' }, n.description)
               : h('div', {
                   style: 'display:flex;align-items:center;gap:4px',
