@@ -309,20 +309,51 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function acceptJoinRequest(memberId) {
+    const { data: member } = await supabase
+      .from('group_members')
+      .select('user_id, groups(name)')
+      .eq('id', memberId)
+      .single()
+
     const { error } = await supabase
       .from('group_members')
       .update({ status: 'active' })
       .eq('id', memberId)
     if (error) throw error
+
+    if (member?.user_id) {
+      await supabase.from('notifications').insert({
+        user_id: member.user_id,
+        type: 'request_result',
+        title: 'Solicitação aceita!',
+        description: `Você foi aceito no grupo ${member.groups?.name ?? ''}.`,
+      })
+    }
+
     await fetchMyGroups()
   }
 
   async function rejectJoinRequest(memberId) {
+    const { data: member } = await supabase
+      .from('group_members')
+      .select('user_id, groups(name)')
+      .eq('id', memberId)
+      .single()
+
     const { error } = await supabase
       .from('group_members')
       .delete()
       .eq('id', memberId)
     if (error) throw error
+
+    if (member?.user_id) {
+      await supabase.from('notifications').insert({
+        user_id: member.user_id,
+        type: 'request_result',
+        title: 'Solicitação recusada',
+        description: `Sua solicitação para ${member.groups?.name ?? 'o grupo'} foi recusada.`,
+      })
+    }
   }
 
   return {

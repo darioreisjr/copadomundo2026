@@ -284,54 +284,73 @@
 
           <!-- Seção: Solicitações de entrada (só dono vê) -->
           <template v-if="isOwner && joinRequests.length">
-            <div class="text-subtitle-2 font-weight-medium mb-3 d-flex align-center gap-2">
-              <v-icon icon="mdi-account-clock" color="orange-darken-2" size="18" />
-              Solicitações de entrada
-              <v-chip size="x-small" color="orange-darken-2" variant="tonal">{{ joinRequests.length }}</v-chip>
+            <div class="text-subtitle-2 font-weight-medium mb-3 d-flex align-center gap-1">
+              Solicitações de entrada ({{ joinRequests.length }})
             </div>
-            <v-card elevation="1" rounded="lg" class="mb-6">
-              <v-list lines="two" class="pa-0">
-                <template v-for="(req, idx) in joinRequests" :key="req.id">
-                  <v-divider v-if="idx > 0" />
-                  <v-list-item class="py-2">
-                    <template #prepend>
-                      <v-avatar color="orange-darken-2" size="40" class="mr-3">
-                        <v-img v-if="req.profiles?.avatar_url" :src="req.profiles.avatar_url" cover />
-                        <span v-else class="text-white font-weight-bold text-body-2">
-                          {{ (req.profiles?.name || '?')[0].toUpperCase() }}
-                        </span>
-                      </v-avatar>
-                    </template>
-                    <v-list-item-title class="font-weight-medium">{{ req.profiles?.name ?? '—' }}</v-list-item-title>
-                    <v-list-item-subtitle v-if="req.profiles?.username">@{{ req.profiles.username }}</v-list-item-subtitle>
-                    <template #append>
-                      <div class="d-flex gap-2">
-                        <v-btn
-                          size="small"
-                          color="green-darken-2"
-                          variant="tonal"
-                          rounded="lg"
-                          :loading="acceptingRequestId === req.id"
-                          @click="handleAcceptRequest(req.id)"
-                        >
-                          Aceitar
-                        </v-btn>
-                        <v-btn
-                          size="small"
-                          color="red"
-                          variant="text"
-                          rounded="lg"
-                          :loading="rejectingRequestId === req.id"
-                          @click="handleRejectRequest(req.id)"
-                        >
-                          Rejeitar
-                        </v-btn>
-                      </div>
-                    </template>
-                  </v-list-item>
-                </template>
-              </v-list>
-            </v-card>
+            <v-row class="mb-6">
+              <v-col
+                v-for="req in joinRequests"
+                :key="req.id"
+                cols="6"
+                sm="4"
+                md="3"
+              >
+                <v-card
+                  rounded="lg"
+                  elevation="2"
+                  class="pa-2"
+                  style="min-height: 130px; position: relative; border: 2px solid #e65100;"
+                >
+                  <div style="position: absolute; top: 8px; right: 8px;">
+                    <v-chip color="orange-darken-2" size="x-small" variant="tonal">
+                      Solicitação
+                    </v-chip>
+                  </div>
+
+                  <div class="d-flex flex-column align-center text-center pt-2 pb-1">
+                    <v-avatar color="orange-darken-2" size="48" class="mb-2">
+                      <v-img v-if="req.profiles?.avatar_url" :src="req.profiles.avatar_url" cover />
+                      <span v-else class="text-white font-weight-bold text-body-2">
+                        {{ (req.profiles?.name || '?')[0].toUpperCase() }}
+                      </span>
+                    </v-avatar>
+                    <div class="font-weight-medium text-body-2" style="line-height:1.3">
+                      {{ req.profiles?.name ?? '—' }}
+                    </div>
+                    <div v-if="req.profiles?.username" class="text-caption text-medium-emphasis">
+                      @{{ req.profiles.username }}
+                    </div>
+                  </div>
+
+                  <div class="d-flex justify-center gap-6 mt-1 mb-2">
+                    <v-btn
+                      size="x-small"
+                      color="green-darken-2"
+                      variant="tonal"
+                      rounded="lg"
+                      class="px-4 mr-3"
+                      style="height: 36px;"
+                      :loading="acceptingRequestId === req.id"
+                      @click="handleAcceptRequest(req.id)"
+                    >
+                      Aceitar
+                    </v-btn>
+                    <v-btn
+                      size="x-small"
+                      color="red"
+                      variant="tonal"
+                      rounded="lg"
+                      class="px-4"
+                      style="height: 36px;"
+                      :loading="rejectingRequestId === req.id"
+                      @click="handleRejectRequest(req)"
+                    >
+                      Rejeitar
+                    </v-btn>
+                  </div>
+                </v-card>
+              </v-col>
+            </v-row>
             <v-divider class="mb-4" />
           </template>
 
@@ -625,6 +644,21 @@
       </v-card>
     </v-dialog>
 
+    <!-- Dialog confirmar rejeição de solicitação -->
+    <v-dialog v-model="rejectDialog" max-width="380">
+      <v-card rounded="lg">
+        <v-card-title class="pt-4 px-4 font-weight-bold">Rejeitar solicitação?</v-card-title>
+        <v-card-text class="px-4 pb-2 text-body-2 text-medium-emphasis">
+          A solicitação de <strong>{{ requestToReject?.profiles?.name }}</strong> será recusada.
+        </v-card-text>
+        <v-card-actions class="px-4 pb-4 gap-2">
+          <v-spacer />
+          <v-btn variant="text" rounded="lg" @click="rejectDialog = false; requestToReject = null">Cancelar</v-btn>
+          <v-btn color="red" variant="tonal" rounded="lg" :loading="rejectingRequestId === requestToReject?.id" @click="confirmRejectRequest">Rejeitar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Dialog confirmar exclusão do grupo -->
     <v-dialog v-model="deleteDialog" max-width="380">
       <v-card rounded="lg">
@@ -734,6 +768,8 @@ const activeAndInvitedMembers = computed(() =>
 
 const acceptingRequestId = ref(null)
 const rejectingRequestId = ref(null)
+const rejectDialog = ref(false)
+const requestToReject = ref(null)
 
 const hasChanges = computed(() => {
   if (!group.value) return false
@@ -897,11 +933,20 @@ async function handleAcceptRequest(memberId) {
   }
 }
 
-async function handleRejectRequest(memberId) {
-  rejectingRequestId.value = memberId
+function handleRejectRequest(req) {
+  requestToReject.value = req
+  rejectDialog.value = true
+}
+
+async function confirmRejectRequest() {
+  const req = requestToReject.value
+  if (!req) return
+  rejectingRequestId.value = req.id
   try {
-    await groups.rejectJoinRequest(memberId)
-    toast.notify('Solicitação rejeitada.', 'info')
+    await groups.rejectJoinRequest(req.id)
+    toast.notify('Solicitação rejeitada.', 'success')
+    rejectDialog.value = false
+    requestToReject.value = null
     await loadMembers()
   } catch (e) {
     toast.notify(e.message, 'error')

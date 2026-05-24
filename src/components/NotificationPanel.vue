@@ -347,6 +347,7 @@ const NotifRow = defineComponent({
       const n = props.notif
       const isInvite = n.type === 'invite'
       const isRequest = n.type === 'join_request'
+      const isRequestResult = n.type === 'request_result'
       const diff = Date.now() - n.timestamp.getTime()
       const mins = Math.floor(diff / 60000)
       let timeStr = 'agora'
@@ -354,8 +355,8 @@ const NotifRow = defineComponent({
       else if (mins >= 60 && mins < 1440) timeStr = `${Math.floor(mins / 60)}h`
       else if (mins >= 1440) timeStr = `${Math.floor(mins / 1440)}d`
 
-      const iconName = isInvite ? 'mdi-email-outline' : isRequest ? 'mdi-account-plus' : 'mdi-seal'
-      const categoryLabel = isInvite ? 'CONVITES' : isRequest ? 'SOLICITAÇÕES' : 'SELOS'
+      const iconName = isInvite ? 'mdi-email-outline' : isRequest ? 'mdi-account-plus' : isRequestResult ? (n.title.includes('aceita') ? 'mdi-account-check' : 'mdi-account-remove') : 'mdi-seal'
+      const categoryLabel = isInvite ? 'CONVITES' : isRequest ? 'SOLICITAÇÕES' : isRequestResult ? 'GRUPOS' : 'SELOS'
 
       const children = [
         h('div', { style: 'display:flex;align-items:flex-start;gap:10px' }, [
@@ -372,7 +373,7 @@ const NotifRow = defineComponent({
             h('div', {
               style: 'color:#fff;font-size:13px;font-weight:500;line-height:1.3;margin-bottom:2px',
             }, n.title),
-            (isInvite || isRequest)
+            (isInvite || isRequest || isRequestResult)
               ? h('div', { style: 'color:rgba(255,255,255,0.6);font-size:12px' }, n.description)
               : h('div', {
                   style: 'display:flex;align-items:center;gap:4px',

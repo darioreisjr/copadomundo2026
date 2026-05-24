@@ -132,7 +132,7 @@ copa-do-mundo/
     │   ├── sealRewards.js      # CRUD dos eventos de selos (somente admin)
     │   ├── seals.js            # Concessão de selos ao usuário: baú diário, estado do modal
     │   ├── toast.js            # Notificações globais (snackbar)
-  │   └── notifications.js   # Agregação de notificações: convites pendentes e selos ganhos, controle de leitura via localStorage
+    │   └── notifications.js   # Agregação de notificações: convites pendentes, selos ganhos e resultados de solicitação de entrada em grupos (tabela `notifications`); leitura persistida no banco
     ├── composables/
     │   └── useMatchAnalysis.js # Cache do Especialista IA: busca no Supabase ou gera via Gemini e salva
     ├── lib/
@@ -289,6 +289,21 @@ Tabela de configuração dos eventos que concedem selos aos jogadores. Gerenciad
 
 > RLS: usuários autenticados podem ler; apenas admins podem inserir, atualizar e deletar.
 > Eventos iniciais criados via seed: `daily_chest`, `exact_score`, `winner_hit`, `draw_hit`, `bet_sent`, `knockout_bonus`.
+
+#### `notifications`
+Notificações persistentes para o usuário (ex: resultado de solicitação de entrada em grupo). Aplicado via [supabase/grupos-schema.sql](supabase/grupos-schema.sql).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| id | uuid | PK |
+| user_id | uuid | FK → profiles |
+| type | text | Tipo da notificação (ex: `request_result`) |
+| title | text | Título exibido no sininho |
+| description | text | Descrição detalhada |
+| read | boolean | Se foi lida (padrão: false) |
+| created_at | timestamptz | — |
+
+> RLS: usuário lê e atualiza apenas as próprias notificações; qualquer autenticado pode inserir (necessário para o dono do grupo notificar o solicitante).
 
 #### `user_seals`
 Histórico de selos concedidos a cada usuário. Aplicado via [supabase/seals-awards-schema.sql](supabase/seals-awards-schema.sql).

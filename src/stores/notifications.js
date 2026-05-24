@@ -65,6 +65,12 @@ export const useNotificationsStore = defineStore('notifications', () => {
         .eq('user_id', userId)
         .order('awarded_at', { ascending: false })
         .limit(30),
+      supabase
+        .from('notifications')
+        .select('id, type, title, description, read, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(30),
     ]
 
     if (ownerGroupIds.length) {
@@ -81,7 +87,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
     const results = await Promise.all(queries)
     const invites = results[0].data
     const sealRows = results[1].data
-    const requests = results[2]?.data ?? []
+    const persistedNotifs = results[2]?.data ?? []
+    const requests = results[3]?.data ?? []
 
     const readIds = _loadReadIds()
 
@@ -120,6 +127,18 @@ export const useNotificationsStore = defineStore('notifications', () => {
           sealLabel: null,
         }
       }),
+      ...(persistedNotifs || []).map(n => ({
+        id: `persisted-${n.id}`,
+        dbId: n.id,
+        type: n.type,
+        title: n.title,
+        description: n.description,
+        timestamp: new Date(n.created_at),
+        read: n.read,
+        memberId: null,
+        sealsAmount: null,
+        sealLabel: null,
+      })),
       ...(sealRows || []).map(s => {
         const id = `seal-${s.id}`
         const label = rewardMap[s.event_key] ?? s.event_key
@@ -142,15 +161,19 @@ export const useNotificationsStore = defineStore('notifications', () => {
     loading.value = false
   }
 
-  function markAllAsRead() {
+  async function markAllAsRead() {
     const readIds = _loadReadIds()
+    const dbIds = []
     notifications.value.forEach(n => {
-      // Convites pendentes só são marcados como lidos após aceitar ou recusar
       if (n.type === 'invite') return
       readIds.add(n.id)
       n.read = true
+      if (n.dbId) dbIds.push(n.dbId)
     })
     _saveReadIds(readIds)
+    if (dbIds.length) {
+      await supabase.from('notifications').update({ read: true }).in('id', dbIds)
+    }
   }
 
   function _markInviteRead(memberId) {

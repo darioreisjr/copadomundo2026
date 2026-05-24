@@ -429,7 +429,7 @@ const gruposMenu  = ref(false)
 
 async function handleLogout() {
   await auth.logout()
-  router.push({ name: 'Home' })
+  router.push({ name: 'Login' })
 }
 </script>
 
