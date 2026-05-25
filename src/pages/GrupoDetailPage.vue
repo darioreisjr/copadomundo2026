@@ -251,32 +251,41 @@
           <!-- Convidar por username (só o dono vê) -->
           <template v-if="isOwner">
             <v-card :elevation="route.name === 'MeusGrupoDetail' ? 0 : 1" rounded="lg" class="mb-6 pa-4" :style="route.name === 'MeusGrupoDetail' ? ($vuetify.display.xs ? 'background: transparent; box-shadow: none; border: none;' : 'max-width: 50%; background: transparent; box-shadow: none; border: none;') : ''">
+              <div class="text-body-1 text-medium-emphasis mb-1">
+                (<strong :class="availableSlots === 0 ? 'text-red-darken-2' : ''">{{ usedSlots }}/{{ maxSlots }}</strong>) vaga{{ maxSlots !== 1 ? 's' : '' }} usada{{ maxSlots !== 1 ? 's' : '' }}
+              </div>
               <div class="text-subtitle-2 font-weight-medium mb-3">Convidar por @username</div>
               <div class="d-flex gap-2 align-start">
                 <v-text-field
+                  ref="inviteInputRef"
                   v-model="inviteUsername"
                   label="@username"
                   variant="outlined"
                   density="comfortable"
                   rounded="lg"
-                  hide-details
+                  :hide-details="availableSlots > 0"
                   prefix="@"
                   class="flex-grow-1"
                   @keyup.enter="handleInvite"
-                />
+                >
+                  <template v-if="availableSlots === 0" #details>
+                    <span class="text-caption text-red-darken-2">Sem vagas. Compre mais vagas abaixo.</span>
+                  </template>
+                </v-text-field>
                 <v-btn
                   color="green-darken-3"
                   variant="tonal"
                   rounded="lg"
                   height="48"
                   :loading="inviting"
-                  :disabled="!inviteUsername?.trim()"
+                  :disabled="!inviteUsername?.trim() || availableSlots === 0"
                   @click="handleInvite"
                 >
                   Convidar
                 </v-btn>
               </div>
             </v-card>
+
           </template>
 
           <!-- Cards de membros -->
@@ -354,7 +363,7 @@
             <v-divider class="mb-4" />
           </template>
 
-          <v-row v-if="activeAndInvitedMembers.length">
+          <v-row>
             <v-col
               v-for="member in activeAndInvitedMembers"
               :key="member.id"
@@ -413,6 +422,44 @@
                     @click="openRemoveDialog(member)"
                   />
                 </div>
+              </v-card>
+            </v-col>
+
+            <!-- Cards de vagas vazias -->
+            <v-col
+              v-for="n in availableSlots"
+              :key="`empty-${n}`"
+              cols="6"
+              sm="4"
+              md="3"
+            >
+              <v-card
+                rounded="lg"
+                elevation="0"
+                class="pa-2 d-flex flex-column align-center justify-center"
+                style="min-height: 130px; border: 2px dashed #a5d6a7; cursor: pointer;"
+                @click="focusInviteInput"
+              >
+                <v-avatar color="grey-lighten-3" size="48" class="mb-2">
+                  <v-icon icon="mdi-plus" color="grey-lighten-1" size="28" />
+                </v-avatar>
+                <div class="text-caption text-medium-emphasis">Vaga livre</div>
+              </v-card>
+            </v-col>
+
+            <!-- Card: comprar mais vagas (sempre visível para o dono) -->
+            <v-col v-if="isOwner" key="buy-slots" cols="6" sm="4" md="3">
+              <v-card
+                rounded="lg"
+                elevation="0"
+                class="pa-2 d-flex flex-column align-center justify-center"
+                style="min-height: 130px; border: 2px dashed #66bb6a; cursor: pointer;"
+                @click="buySlotDialog = true"
+              >
+                <v-avatar color="green-lighten-4" size="48" class="mb-2">
+                  <v-icon icon="mdi-plus-circle-outline" color="green-darken-2" size="28" />
+                </v-avatar>
+                <div class="text-caption font-weight-medium text-green-darken-2">Comprar vagas</div>
               </v-card>
             </v-col>
           </v-row>
@@ -707,6 +754,107 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Dialog: comprar vagas -->
+    <v-dialog v-model="buySlotDialog" max-width="420">
+      <v-card rounded="lg">
+        <v-card-title class="pt-4 px-4 font-weight-bold">Comprar vagas</v-card-title>
+        <v-card-subtitle class="px-4 pb-2">
+          Saldo atual:
+          <strong class="text-green-darken-3">
+            <v-icon icon="mdi-seal" size="14" color="green-darken-3" />
+            {{ auth.profile?.total_seals ?? 0 }} selos
+          </strong>
+        </v-card-subtitle>
+
+        <v-card-text class="px-4 pb-2">
+          <v-row dense>
+            <v-col cols="6">
+              <v-card
+                rounded="lg"
+                :elevation="(auth.profile?.total_seals ?? 0) >= 50 ? 2 : 0"
+                :style="(auth.profile?.total_seals ?? 0) < 50 ? 'opacity:0.4;' : 'cursor:pointer;'"
+                :disabled="(auth.profile?.total_seals ?? 0) < 50 || !!purchasingPkg"
+                class="pa-4 d-flex flex-column align-center text-center"
+                style="min-height: 130px;"
+                @click="confirmBuyPkg = 'slots_plus_5'; confirmBuyDialog = true"
+              >
+                <v-avatar color="green-lighten-4" size="52" class="mb-3">
+                  <v-icon icon="mdi-account-multiple-plus" color="green-darken-2" size="26" />
+                </v-avatar>
+                <div class="font-weight-bold text-body-1">+5 vagas</div>
+                <div class="text-caption text-medium-emphasis d-flex align-center justify-center gap-1 mt-1">
+                  <v-icon icon="mdi-seal" size="13" color="green-darken-3" />
+                  50 selos
+                </div>
+                <div v-if="(auth.profile?.total_seals ?? 0) < 50" class="text-caption text-red-darken-2 mt-1">Saldo insuficiente</div>
+              </v-card>
+            </v-col>
+
+            <v-col cols="6">
+              <v-card
+                rounded="lg"
+                :elevation="(auth.profile?.total_seals ?? 0) >= 90 ? 2 : 0"
+                :style="(auth.profile?.total_seals ?? 0) < 90 ? 'opacity:0.4;' : 'cursor:pointer;'"
+                :disabled="(auth.profile?.total_seals ?? 0) < 90 || !!purchasingPkg"
+                class="pa-4 d-flex flex-column align-center text-center"
+                style="min-height: 130px;"
+                @click="confirmBuyPkg = 'slots_plus_10'; confirmBuyDialog = true"
+              >
+                <v-avatar color="green-lighten-4" size="52" class="mb-3">
+                  <v-icon icon="mdi-account-group" color="green-darken-2" size="26" />
+                </v-avatar>
+                <div class="font-weight-bold text-body-1">+10 vagas</div>
+                <div class="text-caption text-medium-emphasis d-flex align-center justify-center gap-1 mt-1">
+                  <v-icon icon="mdi-seal" size="13" color="green-darken-3" />
+                  90 selos
+                </div>
+                <div v-if="(auth.profile?.total_seals ?? 0) < 90" class="text-caption text-red-darken-2 mt-1">Saldo insuficiente</div>
+              </v-card>
+            </v-col>
+          </v-row>
+        </v-card-text>
+
+        <v-card-actions class="px-4 pb-4">
+          <v-spacer />
+          <v-btn variant="text" @click="buySlotDialog = false">Cancelar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Dialog: confirmar compra de vagas -->
+    <v-dialog v-model="confirmBuyDialog" max-width="360" persistent>
+      <v-card rounded="lg">
+        <v-card-title class="pt-4 px-4 font-weight-bold">Confirmar compra</v-card-title>
+        <v-card-text class="px-4">
+          <p>Você está prestes a comprar
+            <strong>{{ confirmBuyPkg === 'slots_plus_5' ? '+5 vagas' : '+10 vagas' }}</strong>
+            por
+            <strong class="text-green-darken-3">
+              <v-icon icon="mdi-seal" size="14" color="green-darken-3" />
+              {{ confirmBuyPkg === 'slots_plus_5' ? '50' : '90' }} selos
+            </strong>.
+          </p>
+          <p class="mt-2 text-medium-emphasis text-body-2">
+            Saldo após a compra:
+            <strong>{{ (auth.profile?.total_seals ?? 0) - (confirmBuyPkg === 'slots_plus_5' ? 50 : 90) }} selos</strong>
+          </p>
+        </v-card-text>
+        <v-card-actions class="px-4 pb-4">
+          <v-btn variant="text" :disabled="!!purchasingPkg" @click="confirmBuyDialog = false">Cancelar</v-btn>
+          <v-spacer />
+          <v-btn
+            color="green-darken-3"
+            variant="tonal"
+            rounded="lg"
+            :loading="!!purchasingPkg"
+            @click="confirmPurchase"
+          >
+            Confirmar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </AppLayout>
 </template>
 
@@ -731,6 +879,7 @@ const membersLoading = ref(false)
 const tab = ref(route.name === 'MeusGrupoDetail' ? 'membros' : 'ranking')
 
 const inviteUsername = ref('')
+const inviteInputRef = ref(null)
 const inviting = ref(false)
 const removingId = ref(null)
 const removeDialog = ref(false)
@@ -788,6 +937,24 @@ const isMember = computed(() =>
 const backRoute = computed(() =>
   route.name === 'MeusGrupoDetail' ? { name: 'MeusGruposOwner' } : { name: 'MeusGrupos' }
 )
+
+const purchasingPkg = ref(null)
+const buySlotDialog = ref(false)
+const confirmBuyDialog = ref(false)
+const confirmBuyPkg = ref(null)
+
+const usedSlots = computed(() =>
+  (groups.groupMembers || []).filter(
+    m => m.status === 'active' || (m.status === 'pending' && m.invited_by)
+  ).length
+)
+const maxSlots = computed(() => group.value?.max_slots ?? 5)
+const availableSlots = computed(() => Math.max(0, maxSlots.value - usedSlots.value))
+const slotsColor = computed(() => {
+  if (availableSlots.value === 0) return 'red-darken-2'
+  if (availableSlots.value <= 2)  return 'orange-darken-2'
+  return 'green-darken-3'
+})
 
 watch(tab, (val) => {
   if (val === 'gerenciar' && group.value) {
@@ -869,6 +1036,11 @@ async function loadMembers() {
   }
 }
 
+function focusInviteInput() {
+  inviteInputRef.value?.focus()
+  inviteInputRef.value?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
 async function handleInvite() {
   if (!inviteUsername.value?.trim()) return
   inviting.value = true
@@ -882,6 +1054,28 @@ async function handleInvite() {
   } finally {
     inviting.value = false
   }
+}
+
+async function handlePurchaseSlots(pkg) {
+  purchasingPkg.value = pkg
+  try {
+    const labels = { slots_plus_5: '+5 vagas', slots_plus_10: '+10 vagas' }
+    const newMax = await groups.purchaseSlots(route.params.id, pkg)
+    group.value = { ...group.value, max_slots: newMax }
+    toast.notify(`${labels[pkg]} adicionadas ao grupo!`, 'success')
+  } catch (e) {
+    toast.notify(e.message, 'error')
+  } finally {
+    purchasingPkg.value = null
+  }
+}
+
+async function confirmPurchase() {
+  if (!confirmBuyPkg.value) return
+  await handlePurchaseSlots(confirmBuyPkg.value)
+  confirmBuyDialog.value = false
+  buySlotDialog.value = false
+  confirmBuyPkg.value = null
 }
 
 function openRemoveDialog(member) {

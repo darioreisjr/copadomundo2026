@@ -76,7 +76,7 @@ export const useGroupsStore = defineStore('groups', () => {
     const { data: { user } } = await supabase.auth.getUser()
     const { data: group, error } = await supabase
       .from('groups')
-      .insert({ name, description: description || null, is_public: !!is_public, image_url: image_url || null, owner_id: user.id })
+      .insert({ name, description: description || null, is_public: !!is_public, image_url: image_url || null, owner_id: user.id, max_slots: 5 })
       .select()
       .single()
 
@@ -129,6 +129,24 @@ export const useGroupsStore = defineStore('groups', () => {
     if (profile.id === user.id) {
       const err = new Error('Você não pode convidar a si mesmo.')
       err.code = 'self_invite'
+      throw err
+    }
+
+    // Verifica vagas disponíveis
+    const { data: groupData, error: eSlotGroup } = await supabase
+      .from('groups').select('max_slots').eq('id', groupId).single()
+    if (eSlotGroup) throw eSlotGroup
+
+    const { count, error: eCount } = await supabase
+      .from('group_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('group_id', groupId)
+      .in('status', ['active', 'pending'])
+    if (eCount) throw eCount
+
+    if (count >= groupData.max_slots) {
+      const err = new Error('Grupo sem vagas disponíveis. Compre mais vagas para convidar.')
+      err.code = 'no_slots'
       throw err
     }
 
@@ -337,9 +355,22 @@ export const useGroupsStore = defineStore('groups', () => {
   async function acceptJoinRequest(memberId) {
     const { data: member } = await supabase
       .from('group_members')
-      .select('user_id, groups(name)')
+      .select('user_id, group_id, groups(name, max_slots)')
       .eq('id', memberId)
       .single()
+
+    // Verifica vagas (conta apenas ativos, pois o solicitante é pending sem invited_by)
+    const { count: activeCount } = await supabase
+      .from('group_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('group_id', member.group_id)
+      .eq('status', 'active')
+
+    if (activeCount >= (member.groups?.max_slots ?? 5)) {
+      const err = new Error('Grupo sem vagas. Compre mais vagas antes de aceitar.')
+      err.code = 'no_slots'
+      throw err
+    }
 
     const { error } = await supabase
       .from('group_members')
@@ -382,12 +413,55 @@ export const useGroupsStore = defineStore('groups', () => {
     }
   }
 
+  async function purchaseSlots(groupId, pkg) {
+    const PACKAGES = {
+      slots_plus_5:  { cost: 50, slots: 5 },
+      slots_plus_10: { cost: 90, slots: 10 },
+    }
+    const p = PACKAGES[pkg]
+    if (!p) throw new Error('Pacote inválido.')
+
+    const auth = useAuthStore()
+    const currentSeals = auth.profile?.total_seals ?? 0
+    if (currentSeals < p.cost) {
+      const err = new Error(`Selos insuficientes. Você precisa de ${p.cost} selos.`)
+      err.code = 'insufficient_seals'
+      throw err
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const { data: groupData, error: eRead } = await supabase
+      .from('groups').select('max_slots').eq('id', groupId).eq('owner_id', user.id).single()
+    if (eRead) throw eRead
+
+    const newMaxSlots = groupData.max_slots + p.slots
+
+    const [{ error: eGroup }, { error: eSeals }] = await Promise.all([
+      supabase.from('groups').update({ max_slots: newMaxSlots }).eq('id', groupId).eq('owner_id', user.id),
+      supabase.from('profiles').update({ total_seals: currentSeals - p.cost }).eq('id', user.id),
+    ])
+    if (eGroup) throw eGroup
+    if (eSeals) throw eSeals
+
+    await supabase.from('notifications').insert({
+      user_id: user.id,
+      type: pkg,
+      title: `+${p.slots} vagas compradas!`,
+      description: `Você utilizou ${p.cost} selos para adicionar ${p.slots} vagas ao grupo.`,
+    })
+
+    await auth.fetchProfile()
+    await fetchMyGroups()
+    return newMaxSlots
+  }
+
   return {
     myGroups, pendingInvites, groupMembers, groupRanking, loading,
     fetchMyGroups, fetchPendingInvites, createGroup, uploadGroupImage, inviteByUsername,
     acceptInvite, declineInvite, removeFromGroup, deleteGroup,
     fetchGroupMembers, fetchGroupRanking, fetchGroup, updateGroup,
     searchPublicGroups, searchGroups, fetchRandomPublicGroup, joinGroup, leaveGroup,
-    requestToJoin, acceptJoinRequest, rejectJoinRequest,
+    requestToJoin, acceptJoinRequest, rejectJoinRequest, purchaseSlots,
   }
 })

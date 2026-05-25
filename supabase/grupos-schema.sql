@@ -202,3 +202,8 @@ create policy "notifications: user updates own" on public.notifications
 
 create policy "notifications: service inserts" on public.notifications
   for insert with check (true);
+
+-- ============================================================
+-- 8. Sistema de vagas (slots) — idempotente
+-- ============================================================
+alter table public.groups add column if not exists max_slots int not null default 5;
