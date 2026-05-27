@@ -53,6 +53,7 @@ O painel administrativo oferece:
 ## Funcionalidades
 
 ### Usuário
+- **Landing page redesenhada:** design minimalista e moderno com efeito parallax duplo no hero (gradiente + imagem de estádio), scroll reveal com `IntersectionObserver`, seções dedicadas a Grupos, Selos e Consultor IA, pills de estatísticas e sem uso de ícones MDI
 - Cadastro e login com e-mail e senha (Supabase Auth)
 - Tela de login redesenhada: layout dividido, imagem lateral com blur, sem header/footer
 - Tela de criar conta redesenhada: layout dividido, imagem lateral (estádio futurístico), sem header/footer
