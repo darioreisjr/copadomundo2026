@@ -1,6 +1,8 @@
-# ⚽ Bolão da Copa do Mundo
+# Bolão Copa 26
 
 Aplicação web de bolão para a Copa do Mundo 2026 com apostas de placar, ranking em tempo real e importação automática de jogos oficiais via OpenFootball + Google Gemini.
+
+<img width="1899" height="915" alt="image" src="https://github.com/user-attachments/assets/c0c5ec1c-9892-4b80-bd5f-141a75485331" />
 
 ---
 
