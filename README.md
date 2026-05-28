@@ -124,7 +124,7 @@ copa-do-mundo/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
     ├── App.vue                 # Root component com transição page-fade, provide do seletor de avatar e modal global de selos
     ├── router/
-    │   └── index.js            # 21 rotas com guards de autenticação e papel
+    │   └── index.js            # 29 rotas com guards de autenticação e papel
     ├── stores/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
     │   ├── avatars.js          # CRUD de avatares + upload para Supabase Storage
@@ -144,10 +144,13 @@ copa-do-mundo/
     │   ├── openfootball.js     # Busca histórico real de confrontos entre seleções (Copas do Mundo 1930–2022)
     │   └── gemini.js           # Tradução de nomes/bandeiras e análise estatística de confrontos via Gemini
     ├── components/
-    │   ├── AppLayout.vue       # Layout principal: menu lateral (desktop), bottom nav com ícones (mobile), drawer fullscreen do hambúrguer (mobile), footer e toast global
-    │   ├── GameCard.vue        # Card reutilizável de jogo com palpite e pontos
+    │   ├── AppLayout.vue          # Layout principal: menu lateral (desktop), bottom nav com ícones (mobile), drawer fullscreen do hambúrguer (mobile), footer e toast global
+    │   ├── GameCard.vue           # Card reutilizável de jogo com palpite e pontos
     │   ├── SealRewardModal.vue    # Modal animado de recompensa de selos (baú diário e outros eventos)
-  │   └── NotificationPanel.vue # Sino de notificações no app bar: convites de grupo e selos ganhos, popup de detalhe ao clicar, badge de não lidas
+    │   ├── NotificationPanel.vue  # Sino de notificações no app bar: convites de grupo e selos ganhos, popup de detalhe ao clicar, badge de não lidas
+    │   ├── LandingNavbar.vue      # Navbar exclusivo da landing page (verde, links das seções, hamburger mobile, botões Entrar/Criar conta)
+    │   ├── LandingLayout.vue      # Layout wrapper das páginas públicas de landing (navbar + slot + footer)
+    │   └── LandingFooter.vue      # Footer público da landing com links adaptados para rotas públicas
     └── pages/
         ├── HomePage.vue
         ├── LoginPage.vue        # Layout split-screen redesenhado
@@ -169,7 +172,14 @@ copa-do-mundo/
         ├── AdminPage.vue
         ├── AdminAvatarsPage.vue    # Gerenciamento de avatares (somente admin)
         ├── AdminSealsPage.vue      # Configuração de selos por evento (somente admin)
-        └── NotFoundPage.vue        # 404 animado com bola de futebol
+        ├── NotFoundPage.vue        # 404 animado com bola de futebol
+        └── landing/                # Páginas públicas informativas da landing page
+            ├── ComoFuncionaPage.vue    # Como funciona o bolão (4 passos)
+            ├── PontuacaoPage.vue       # Regras de pontuação
+            ├── DisputaPage.vue         # Grupos e sistema de disputa
+            ├── SelosPage.vue           # Sistema de selos (ganhar e usar)
+            ├── TecnologiasPage.vue     # Consultor IA com Google Gemini e stack do projeto
+            └── RankingInfoPage.vue     # Explicação do ranking geral
 ```
 
 ---
@@ -497,6 +507,12 @@ npm run preview  # Preview do build local
 | `/reset-password` | ResetPasswordPage | Público |
 | `/conta-criada` | AccountCreatedPage | Público |
 | `/aguardando-confirmacao` | PendingConfirmationPage | Público |
+| `/como-funciona` | ComoFuncionaPage | Público |
+| `/pontuacao` | PontuacaoPage | Público |
+| `/disputa` | DisputaPage | Público |
+| `/selos` | SelosPage | Público |
+| `/tecnologias` | TecnologiasPage | Público |
+| `/ranking-info` | RankingInfoPage | Público |
 | `/dashboard` | DashboardPage | Autenticado |
 | `/games` | GamesPage | Autenticado |
 | `/games/:id/bet` | BetPage | Autenticado |

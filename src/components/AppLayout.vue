@@ -318,7 +318,7 @@
         <slot />
       </v-container>
 
-      <v-footer color="green-darken-4" class="text-white">
+      <v-footer v-if="!isPublic" color="green-darken-4" class="text-white">
       <v-container class="py-10">
         <v-row>
           <v-col cols="12" sm="4" class="mb-6 mb-sm-0 text-center text-sm-start">
