@@ -3,12 +3,52 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 
+const GROUP_JOIN_COST = 30
+const FREE_MEMBERSHIPS = 2
+
 export const useGroupsStore = defineStore('groups', () => {
   const myGroups = ref([])
   const pendingInvites = ref([])
   const groupMembers = ref([])
   const groupRanking = ref([])
   const loading = ref(false)
+
+  // Conta grupos onde o usuário é membro ativo mas NÃO é dono
+  async function countMyMemberships() {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data, error } = await supabase
+      .from('group_members')
+      .select('group_id, groups!inner(owner_id)')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .filter('groups.owner_id', 'neq', user.id)
+    if (error) throw error
+    // Filtra no cliente também para garantir (o !inner join já traz só as linhas com grupo)
+    return (data || []).filter(m => m.groups?.owner_id !== user.id).length
+  }
+
+  // Reserva 30 selos se já atingiu o limite gratuito (retorna 0 ou GROUP_JOIN_COST)
+  async function lockSealsIfNeeded(membershipCount) {
+    const auth = useAuthStore()
+    if (membershipCount < FREE_MEMBERSHIPS) return 0
+    const seals = auth.profile?.total_seals ?? 0
+    if (seals < GROUP_JOIN_COST) {
+      const err = new Error(
+        `Você já está em ${membershipCount} grupo${membershipCount !== 1 ? 's' : ''}. ` +
+        `Para entrar em mais grupos você precisa de ${GROUP_JOIN_COST} selos. ` +
+        `Você tem ${seals} selos.`
+      )
+      err.code = 'insufficient_seals'
+      throw err
+    }
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase.from('profiles')
+      .update({ total_seals: seals - GROUP_JOIN_COST })
+      .eq('id', user.id)
+    if (error) throw error
+    await auth.fetchProfile()
+    return GROUP_JOIN_COST
+  }
 
   async function fetchMyGroups() {
     loading.value = true
@@ -167,11 +207,13 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function acceptInvite(memberId) {
+    const currentCount = await countMyMemberships()
+    // Convite recebido: cobra ao aceitar (sem bloqueio prévio pois o dono convida)
+    await lockSealsIfNeeded(currentCount)
     const { error } = await supabase
       .from('group_members')
       .update({ status: 'active' })
       .eq('id', memberId)
-
     if (error) throw error
     await fetchPendingInvites()
     await fetchMyGroups()
@@ -330,6 +372,9 @@ export const useGroupsStore = defineStore('groups', () => {
 
   async function joinGroup(groupId) {
     const { data: { user } } = await supabase.auth.getUser()
+    const currentCount = await countMyMemberships()
+    // Grupo público: entrada imediata, cobra direto se acima do limite gratuito
+    await lockSealsIfNeeded(currentCount)
     const { error } = await supabase
       .from('group_members')
       .insert({ group_id: groupId, user_id: user?.id, status: 'active' })
@@ -339,10 +384,21 @@ export const useGroupsStore = defineStore('groups', () => {
 
   async function requestToJoin(groupId) {
     const { data: { user } } = await supabase.auth.getUser()
+    const currentCount = await countMyMemberships()
+    // Bloqueia selos antes de inserir; devolve se o insert falhar
+    const locked = await lockSealsIfNeeded(currentCount)
     const { error } = await supabase
       .from('group_members')
-      .insert({ group_id: groupId, user_id: user.id, status: 'pending', invited_by: null })
+      .insert({ group_id: groupId, user_id: user.id, status: 'pending', invited_by: null, seals_locked: locked })
     if (error) {
+      // Devolve selos bloqueados se o insert falhou
+      if (locked > 0) {
+        const auth = useAuthStore()
+        await supabase.from('profiles')
+          .update({ total_seals: (auth.profile?.total_seals ?? 0) + locked })
+          .eq('id', user.id)
+        await auth.fetchProfile()
+      }
       if (error.code === '23505') {
         const err = new Error('Você já enviou uma solicitação ou é membro deste grupo.')
         err.code = 'already_member'
@@ -355,7 +411,7 @@ export const useGroupsStore = defineStore('groups', () => {
   async function acceptJoinRequest(memberId) {
     const { data: member } = await supabase
       .from('group_members')
-      .select('user_id, group_id, groups(name, max_slots)')
+      .select('user_id, group_id, seals_locked, groups(name, max_slots)')
       .eq('id', memberId)
       .single()
 
@@ -372,18 +428,22 @@ export const useGroupsStore = defineStore('groups', () => {
       throw err
     }
 
+    // seals_locked > 0: selos já foram subtraídos do saldo ao solicitar — só zera o campo
     const { error } = await supabase
       .from('group_members')
-      .update({ status: 'active' })
+      .update({ status: 'active', seals_locked: 0 })
       .eq('id', memberId)
     if (error) throw error
 
     if (member?.user_id) {
+      const sealMsg = (member.seals_locked ?? 0) > 0
+        ? ` Os ${member.seals_locked} selos reservados foram descontados.`
+        : ''
       await supabase.from('notifications').insert({
         user_id: member.user_id,
         type: 'request_result',
         title: 'Solicitação aceita!',
-        description: `Você foi aceito no grupo ${member.groups?.name ?? ''}.`,
+        description: `Você foi aceito no grupo ${member.groups?.name ?? ''}.${sealMsg}`,
       })
     }
 
@@ -393,7 +453,7 @@ export const useGroupsStore = defineStore('groups', () => {
   async function rejectJoinRequest(memberId) {
     const { data: member } = await supabase
       .from('group_members')
-      .select('user_id, groups(name)')
+      .select('user_id, seals_locked, groups(name)')
       .eq('id', memberId)
       .single()
 
@@ -403,12 +463,27 @@ export const useGroupsStore = defineStore('groups', () => {
       .eq('id', memberId)
     if (error) throw error
 
+    // Devolve selos bloqueados se o solicitante havia pago reserva
+    if ((member?.seals_locked ?? 0) > 0) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('total_seals')
+        .eq('id', member.user_id)
+        .single()
+      await supabase.from('profiles')
+        .update({ total_seals: (profile?.total_seals ?? 0) + member.seals_locked })
+        .eq('id', member.user_id)
+    }
+
     if (member?.user_id) {
+      const sealMsg = (member.seals_locked ?? 0) > 0
+        ? ` Os ${member.seals_locked} selos reservados foram devolvidos.`
+        : ''
       await supabase.from('notifications').insert({
         user_id: member.user_id,
         type: 'request_result',
         title: 'Solicitação recusada',
-        description: `Sua solicitação para ${member.groups?.name ?? 'o grupo'} foi recusada.`,
+        description: `Sua solicitação para ${member.groups?.name ?? 'o grupo'} foi recusada.${sealMsg}`,
       })
     }
   }
@@ -463,5 +538,7 @@ export const useGroupsStore = defineStore('groups', () => {
     fetchGroupMembers, fetchGroupRanking, fetchGroup, updateGroup,
     searchPublicGroups, searchGroups, fetchRandomPublicGroup, joinGroup, leaveGroup,
     requestToJoin, acceptJoinRequest, rejectJoinRequest, purchaseSlots,
+    countMyMemberships,
+    GROUP_JOIN_COST, FREE_MEMBERSHIPS,
   }
 })

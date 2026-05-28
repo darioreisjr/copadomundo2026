@@ -233,6 +233,33 @@
           <template v-else>
             O grupo <strong>{{ joiningGroup?.name }}</strong> é privado. Sua solicitação será enviada ao dono do grupo para aprovação.
           </template>
+
+          <!-- Aviso de custo quando já atingiu o limite gratuito -->
+          <v-alert
+            v-if="membershipCount >= groups.FREE_MEMBERSHIPS"
+            :type="hasEnoughSeals ? 'warning' : 'error'"
+            variant="tonal"
+            density="compact"
+            rounded="lg"
+            class="mt-3"
+            :icon="hasEnoughSeals ? 'mdi-seal' : 'mdi-seal-variant'"
+          >
+            <div class="text-body-2">
+              Você já está em <strong>{{ membershipCount }}</strong> grupo{{ membershipCount !== 1 ? 's' : '' }} como membro.
+            </div>
+            <div class="text-body-2 mt-1" v-if="hasEnoughSeals && joiningGroup?.is_public">
+              Esta entrada custará <strong>{{ groups.GROUP_JOIN_COST }} selos</strong>.
+              Saldo atual: {{ auth.profile?.total_seals ?? 0 }} selos.
+            </div>
+            <div class="text-body-2 mt-1" v-else-if="hasEnoughSeals && !joiningGroup?.is_public">
+              <strong>{{ groups.GROUP_JOIN_COST }} selos serão bloqueados</strong> ao solicitar.
+              Se recusado, os selos são devolvidos. Saldo atual: {{ auth.profile?.total_seals ?? 0 }} selos.
+            </div>
+            <div class="text-body-2 mt-1" v-else>
+              Você precisa de <strong>{{ groups.GROUP_JOIN_COST }} selos</strong> para entrar em mais grupos.
+              Saldo atual: <strong>{{ auth.profile?.total_seals ?? 0 }} selos</strong>.
+            </div>
+          </v-alert>
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer />
@@ -242,6 +269,7 @@
             variant="tonal"
             rounded="lg"
             :loading="joiningLoading"
+            :disabled="membershipCount >= groups.FREE_MEMBERSHIPS && !hasEnoughSeals"
             @click="confirmJoin"
           >
             {{ joiningGroup?.is_public ? 'Entrar' : 'Enviar solicitação' }}
@@ -271,6 +299,14 @@ const filteredGroups = computed(() => {
   const q = groupFilter.value.trim().toLowerCase()
   return groups.myGroups.filter(g => g.name.toLowerCase().includes(q))
 })
+
+// Grupos onde o usuário é membro (não dono)
+const membershipCount = computed(() => {
+  const uid = auth.user?.id
+  return groups.myGroups.filter(g => g.owner_id !== uid).length
+})
+
+const hasEnoughSeals = computed(() => (auth.profile?.total_seals ?? 0) >= groups.GROUP_JOIN_COST)
 
 const searchDialog = ref(false)
 const searchQuery = ref('')

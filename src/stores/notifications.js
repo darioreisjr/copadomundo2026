@@ -77,7 +77,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       queries.push(
         supabase
           .from('group_members')
-          .select('id, group_id, user_id, created_at, groups(id, name), profiles:user_id(name, username, nome_fantasia)')
+          .select('id, group_id, user_id, created_at, seals_locked, groups(id, name), profiles:user_id(name, username, nome_fantasia)')
           .is('invited_by', null)
           .eq('status', 'pending')
           .in('group_id', ownerGroupIds)
@@ -125,6 +125,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
           memberId: req.id,
           sealsAmount: null,
           sealLabel: null,
+          sealsLocked: req.seals_locked ?? 0,
         }
       }),
       ...(persistedNotifs || []).map(n => ({

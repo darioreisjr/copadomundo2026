@@ -207,3 +207,24 @@ create policy "notifications: service inserts" on public.notifications
 -- 8. Sistema de vagas (slots) — idempotente
 -- ============================================================
 alter table public.groups add column if not exists max_slots int not null default 5;
+
+-- ============================================================
+-- 9. Limite de participação: selos bloqueados por solicitação
+-- ============================================================
+-- Armazena quantos selos foram reservados ao solicitar entrada
+-- em grupo privado. 0 = gratuito ou convite; >0 = valor reservado.
+-- Ao aceitar: zera (já descontado). Ao rejeitar: devolve ao usuário.
+alter table public.group_members
+  add column if not exists seals_locked int not null default 0;
+
+-- Conta apenas memberships ativas onde o usuário NÃO é dono do grupo
+create or replace function public.count_user_memberships(p_user_id uuid)
+returns int language sql security definer stable
+set search_path = public as $$
+  select count(*)::int
+  from public.group_members gm
+  join public.groups g on g.id = gm.group_id
+  where gm.user_id = p_user_id
+    and gm.status = 'active'
+    and g.owner_id <> p_user_id
+$$;

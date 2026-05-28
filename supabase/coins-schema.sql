@@ -53,3 +53,8 @@ insert into public.seal_rewards (event_key, label, description, seals, icon) val
   ('slots_plus_5',   '+5 Vagas no Grupo',       'Comprou 5 vagas adicionais para o grupo',          50, 'mdi-account-multiple-plus'),
   ('slots_plus_10',  '+10 Vagas no Grupo',      'Comprou 10 vagas adicionais para o grupo',         90, 'mdi-account-group')
 on conflict (event_key) do nothing;
+
+-- Custo de entrada em grupo a partir do 3º (limite gratuito: 2)
+insert into public.seal_rewards (event_key, label, description, seals, icon)
+values ('group_join_fee', 'Entrada em Grupo', 'Custo para participar de mais de 2 grupos como membro', 30, 'mdi-account-group-outline')
+on conflict (event_key) do nothing;

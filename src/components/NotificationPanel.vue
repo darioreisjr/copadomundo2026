@@ -87,6 +87,8 @@
               :notif="notif"
               :accepting="accepting"
               :declining="declining"
+              :invite-cost="inviteCost"
+              :invite-has-enough-seals="inviteHasEnoughSeals"
               @open="openDetail"
               @accept="handleAccept"
               @decline="handleDecline"
@@ -110,6 +112,8 @@
               :read="true"
               :accepting="accepting"
               :declining="declining"
+              :invite-cost="inviteCost"
+              :invite-has-enough-seals="inviteHasEnoughSeals"
               @open="openDetail"
               @accept="handleAccept"
               @decline="handleDecline"
@@ -169,14 +173,44 @@
 
         <!-- Descrição por tipo -->
         <template v-if="selectedNotif.type === 'invite'">
-          <div style="color:rgba(255,255,255,0.65);font-size:14px;margin-bottom:24px">
+          <div style="color:rgba(255,255,255,0.65);font-size:14px;margin-bottom:16px">
             {{ selectedNotif.description }}
           </div>
+
+          <!-- Aviso de custo ao aceitar convite quando já atingiu o limite gratuito -->
+          <div
+            v-if="!selectedNotif.read && inviteCost > 0"
+            style="background:rgba(255,193,7,0.15);border:1px solid rgba(255,193,7,0.4);border-radius:8px;padding:12px;margin-bottom:16px"
+          >
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <v-icon icon="mdi-seal" size="16" color="#ffd54f" />
+              <span style="color:#ffd54f;font-size:12px;font-weight:700">Entrada com custo</span>
+            </div>
+            <div style="color:rgba(255,255,255,0.8);font-size:13px">
+              Você já está em <strong style="color:#fff">{{ inviteMembershipCount }}</strong> grupo{{ inviteMembershipCount !== 1 ? 's' : '' }} como membro.
+              Aceitar este convite custará <strong style="color:#ffd54f">{{ groups.GROUP_JOIN_COST }} selos</strong>.
+            </div>
+            <div style="color:rgba(255,255,255,0.55);font-size:12px;margin-top:4px">
+              Saldo atual: {{ auth.profile?.total_seals ?? 0 }} selos
+            </div>
+          </div>
+
+          <!-- Selos insuficientes -->
+          <div
+            v-if="!selectedNotif.read && inviteCost > 0 && !inviteHasEnoughSeals"
+            style="background:rgba(244,67,54,0.15);border:1px solid rgba(244,67,54,0.4);border-radius:8px;padding:10px;margin-bottom:16px"
+          >
+            <div style="color:#ef9a9a;font-size:13px">
+              Selos insuficientes para aceitar. Você precisa de <strong>{{ groups.GROUP_JOIN_COST }} selos</strong> mas tem apenas <strong>{{ auth.profile?.total_seals ?? 0 }}</strong>.
+            </div>
+          </div>
+
           <div v-if="!selectedNotif.read" style="display:flex;gap:12px">
             <v-btn
               color="green-lighten-1"
               variant="tonal"
               rounded="lg"
+              :disabled="inviteCost > 0 && !inviteHasEnoughSeals"
               :loading="accepting === selectedNotif.memberId"
               @click="handleAccept(selectedNotif.memberId)"
             >
@@ -198,9 +232,24 @@
         </template>
 
         <template v-else-if="selectedNotif.type === 'join_request'">
-          <div style="color:rgba(255,255,255,0.65);font-size:14px;margin-bottom:24px">
+          <div style="color:rgba(255,255,255,0.65);font-size:14px;margin-bottom:16px">
             {{ selectedNotif.description }}
           </div>
+
+          <!-- Badge: solicitante reservou selos -->
+          <div
+            v-if="selectedNotif.sealsLocked > 0"
+            style="background:rgba(165,214,167,0.15);border:1px solid rgba(165,214,167,0.35);border-radius:8px;padding:10px;margin-bottom:16px"
+          >
+            <div style="display:flex;align-items:center;gap:6px">
+              <v-icon icon="mdi-seal" size="15" color="#a5d6a7" />
+              <span style="color:#a5d6a7;font-size:12px;font-weight:700">{{ selectedNotif.sealsLocked }} selos reservados</span>
+            </div>
+            <div style="color:rgba(255,255,255,0.6);font-size:12px;margin-top:2px">
+              Se aceito, os selos são descontados. Se rejeitado, são devolvidos ao solicitante.
+            </div>
+          </div>
+
           <div style="display:flex;gap:12px">
             <v-btn
               color="green-lighten-1"
@@ -242,16 +291,59 @@
       </div>
     </v-card>
   </v-dialog>
+
+  <!-- Dialog de confirmação: aceitar convite com custo -->
+  <v-dialog v-model="inviteConfirmOpen" max-width="380" persistent>
+    <v-card rounded="lg">
+      <v-card-title class="pt-4 px-4 font-weight-bold d-flex align-center gap-2">
+        <v-icon icon="mdi-seal" color="amber-darken-2" />
+        Aceitar convite com custo
+      </v-card-title>
+      <v-card-text class="px-4">
+        <p class="mb-3">
+          Você já está em <strong>{{ inviteMembershipCount }}</strong> grupo{{ inviteMembershipCount !== 1 ? 's' : '' }} como membro.
+          Para aceitar este convite serão descontados <strong>{{ groups.GROUP_JOIN_COST }} selos</strong>.
+        </p>
+        <v-alert
+          type="warning"
+          variant="tonal"
+          density="compact"
+          rounded="lg"
+          icon="mdi-seal"
+        >
+          Saldo atual: <strong>{{ auth.profile?.total_seals ?? 0 }} selos</strong>.
+          Após aceitar: <strong>{{ (auth.profile?.total_seals ?? 0) - groups.GROUP_JOIN_COST }} selos</strong>.
+        </v-alert>
+      </v-card-text>
+      <v-card-actions class="px-4 pb-4">
+        <v-spacer />
+        <v-btn variant="text" rounded="lg" @click="inviteConfirmOpen = false">Cancelar</v-btn>
+        <v-btn
+          color="green-darken-2"
+          variant="tonal"
+          rounded="lg"
+          :loading="accepting === pendingInviteMemberId"
+          @click="confirmAcceptInvite"
+        >
+          Confirmar e aceitar
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
-import { ref, defineComponent, h, onMounted } from 'vue'
+import { ref, computed, defineComponent, h, onMounted } from 'vue'
 import { useDisplay } from 'vuetify'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useGroupsStore } from '@/stores/groups'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 
 const display = useDisplay()
 const notifStore = useNotificationsStore()
+const groups = useGroupsStore()
+const auth = useAuthStore()
 const toast = useToastStore()
 
 const open = ref(false)
@@ -260,6 +352,22 @@ const accepting = ref(null)
 const declining = ref(null)
 const selectedNotif = ref(null)
 const detailOpen = ref(false)
+
+// Dialog de confirmação para aceitar convite com custo
+const inviteConfirmOpen = ref(false)
+const pendingInviteMemberId = ref(null)
+
+// Contagem de memberships do usuário logado (não donos) — para validar custo no convite
+const inviteMembershipCount = computed(() => {
+  const uid = auth.user?.id
+  return groups.myGroups.filter(g => g.owner_id !== uid).length
+})
+const inviteCost = computed(() =>
+  inviteMembershipCount.value >= groups.FREE_MEMBERSHIPS ? groups.GROUP_JOIN_COST : 0
+)
+const inviteHasEnoughSeals = computed(() =>
+  (auth.profile?.total_seals ?? 0) >= groups.GROUP_JOIN_COST
+)
 
 function relativeTime(date) {
   const diff = Date.now() - date.getTime()
@@ -285,6 +393,29 @@ function openDetail(notif) {
 }
 
 async function handleAccept(memberId) {
+  // Se há custo, abre dialog de confirmação em vez de aceitar direto
+  if (inviteCost.value > 0) {
+    if (!inviteHasEnoughSeals.value) {
+      toast.notify(
+        `Selos insuficientes. Você precisa de ${groups.GROUP_JOIN_COST} selos para entrar em mais grupos.`,
+        'error'
+      )
+      return
+    }
+    pendingInviteMemberId.value = memberId
+    inviteConfirmOpen.value = true
+    return
+  }
+  await _doAcceptInvite(memberId)
+}
+
+async function confirmAcceptInvite() {
+  await _doAcceptInvite(pendingInviteMemberId.value)
+  inviteConfirmOpen.value = false
+  pendingInviteMemberId.value = null
+}
+
+async function _doAcceptInvite(memberId) {
   accepting.value = memberId
   try {
     await notifStore.acceptInvite(memberId)
@@ -346,6 +477,8 @@ const NotifRow = defineComponent({
     read: { type: Boolean, default: false },
     accepting: { type: String, default: null },
     declining: { type: String, default: null },
+    inviteCost: { type: Number, default: 0 },
+    inviteHasEnoughSeals: { type: Boolean, default: true },
   },
   emits: ['open', 'accept', 'decline', 'accept-request', 'reject-request'],
   setup(props, { emit }) {
@@ -365,6 +498,31 @@ const NotifRow = defineComponent({
       const iconName = isInvite ? 'mdi-email-outline' : isRequest ? 'mdi-account-plus' : isRequestResult ? (n.title.includes('aceita') ? 'mdi-account-check' : 'mdi-account-remove') : isGroupCreated ? 'mdi-account-group' : 'mdi-seal'
       const categoryLabel = isInvite ? 'CONVITES' : isRequest ? 'SOLICITAÇÕES' : (isRequestResult || isGroupCreated) ? 'GRUPOS' : 'SELOS'
 
+      const descLine = (isInvite || isRequest || isRequestResult || isGroupCreated)
+        ? h('div', { style: 'color:rgba(255,255,255,0.6);font-size:12px' }, n.description)
+        : h('div', { style: 'display:flex;align-items:center;gap:4px' }, [
+            h('v-icon', { icon: 'mdi-seal', size: 13, color: '#a5d6a7' }),
+            h('span', { style: 'color:#a5d6a7;font-size:12px;font-weight:600' }, n.description),
+          ])
+
+      // Badge de selos reservados (solicitação de entrada com custo)
+      const sealBadge = (isRequest && (n.sealsLocked ?? 0) > 0)
+        ? h('div', { style: 'display:flex;align-items:center;gap:4px;margin-top:3px' }, [
+            h('v-icon', { icon: 'mdi-seal', size: 11, color: '#a5d6a7' }),
+            h('span', { style: 'color:#a5d6a7;font-size:11px;font-weight:600' }, `${n.sealsLocked} selos reservados`),
+          ])
+        : null
+
+      // Badge de custo para convites (quando usuário já atingiu o limite gratuito)
+      const inviteCostBadge = (isInvite && props.inviteCost > 0)
+        ? h('div', { style: 'display:flex;align-items:center;gap:4px;margin-top:3px' }, [
+            h('v-icon', { icon: 'mdi-seal', size: 11, color: '#ffd54f' }),
+            h('span', { style: 'color:#ffd54f;font-size:11px;font-weight:600' },
+              props.inviteHasEnoughSeals ? `Custa ${props.inviteCost} selos` : `Sem selos (${props.inviteCost} necessários)`
+            ),
+          ])
+        : null
+
       const children = [
         h('div', { style: 'display:flex;align-items:flex-start;gap:10px' }, [
           h('div', { style: 'margin-top:2px;flex-shrink:0' }, [
@@ -380,14 +538,9 @@ const NotifRow = defineComponent({
             h('div', {
               style: 'color:#fff;font-size:13px;font-weight:500;line-height:1.3;margin-bottom:2px',
             }, n.title),
-            (isInvite || isRequest || isRequestResult || isGroupCreated)
-              ? h('div', { style: 'color:rgba(255,255,255,0.6);font-size:12px' }, n.description)
-              : h('div', {
-                  style: 'display:flex;align-items:center;gap:4px',
-                }, [
-                  h('v-icon', { icon: 'mdi-seal', size: 13, color: '#a5d6a7' }),
-                  h('span', { style: 'color:#a5d6a7;font-size:12px;font-weight:600' }, n.description),
-                ]),
+            descLine,
+            sealBadge,
+            inviteCostBadge,
           ]),
         ]),
       ]
