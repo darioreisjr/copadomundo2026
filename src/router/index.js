@@ -21,6 +21,7 @@ const routes = [
   { path: '/games',     name: 'Games',    component: () => import('@/pages/GamesPage.vue'),     meta: { title: 'Jogos' } },
   { path: '/games/:id/bet', name: 'Bet', component: () => import('@/pages/BetPage.vue'),        meta: { title: 'Fazer Palpite' } },
   { path: '/ranking',   name: 'Ranking',  component: () => import('@/pages/RankingPage.vue'),   meta: { title: 'Ranking' } },
+  { path: '/apostas',   name: 'Apostas',  component: () => import('@/pages/ApostasPage.vue'),   meta: { title: 'Apostas P2P' } },
   { path: '/grupos',          name: 'MeusGrupos',  component: () => import('@/pages/MeusGruposPage.vue'),   meta: { title: 'Grupos' } },
   { path: '/grupos/:id',      name: 'GrupoDetail', component: () => import('@/pages/GrupoDetailPage.vue'),  meta: { title: 'Grupo' } },
   { path: '/meus-grupos',     name: 'MeusGruposOwner',  component: () => import('@/pages/MeusGruposOwnerPage.vue'), meta: { title: 'Meus Grupos' } },

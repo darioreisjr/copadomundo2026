@@ -144,7 +144,7 @@
       <!-- Área do ícone grande -->
       <div style="background:rgba(0,0,0,0.25);padding:52px 24px 36px;text-align:center">
         <v-icon
-          :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : selectedNotif.type === 'join_request' ? 'mdi-account-plus' : selectedNotif.type === 'group_created' ? 'mdi-account-group' : 'mdi-seal'"
+          :icon="detailIcon(selectedNotif.type)"
           size="80"
           color="white"
         />
@@ -156,12 +156,12 @@
         <!-- Categoria + tempo -->
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
           <v-icon
-            :icon="selectedNotif.type === 'invite' ? 'mdi-email-outline' : selectedNotif.type === 'join_request' ? 'mdi-account-plus' : selectedNotif.type === 'group_created' ? 'mdi-account-group' : 'mdi-seal'"
+            :icon="detailIcon(selectedNotif.type)"
             size="13"
             style="color:rgba(255,255,255,0.5)"
           />
           <span style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">
-            {{ selectedNotif.type === 'invite' ? 'CONVITES' : selectedNotif.type === 'join_request' ? 'SOLICITAÇÕES' : selectedNotif.type === 'group_created' ? 'GRUPOS' : 'SELOS' }}
+            {{ detailCategory(selectedNotif.type) }}
           </span>
           <span style="color:rgba(255,255,255,0.4);font-size:11px">· {{ relativeTime(selectedNotif.timestamp) }} atrás</span>
         </div>
@@ -278,6 +278,24 @@
           </div>
         </template>
 
+        <template v-else-if="selectedNotif.type?.startsWith('wager_')">
+          <div style="color:rgba(255,255,255,0.75);font-size:14px;margin-bottom:8px">
+            {{ selectedNotif.description }}
+          </div>
+          <v-btn
+            v-if="selectedNotif.wagerId"
+            color="green-lighten-1"
+            variant="tonal"
+            rounded="lg"
+            size="small"
+            prepend-icon="mdi-handshake"
+            :to="{ name: 'Apostas' }"
+            @click="detailOpen = false"
+          >
+            Ver Apostas
+          </v-btn>
+        </template>
+
         <template v-else>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <v-icon icon="mdi-seal" size="20" color="#a5d6a7" />
@@ -368,6 +386,26 @@ const inviteCost = computed(() =>
 const inviteHasEnoughSeals = computed(() =>
   (auth.profile?.total_seals ?? 0) >= groups.GROUP_JOIN_COST
 )
+
+function detailIcon(type) {
+  if (type === 'invite') return 'mdi-email-outline'
+  if (type === 'join_request') return 'mdi-account-plus'
+  if (type === 'group_created') return 'mdi-account-group'
+  if (type === 'wager_challenge') return 'mdi-sword-cross'
+  if (type === 'wager_accepted') return 'mdi-handshake'
+  if (type === 'wager_won') return 'mdi-trophy'
+  if (type === 'wager_lost') return 'mdi-emoticon-sad-outline'
+  if (type === 'wager_tied' || type === 'wager_cancelled') return 'mdi-handshake-outline'
+  return 'mdi-seal'
+}
+
+function detailCategory(type) {
+  if (type === 'invite') return 'CONVITES'
+  if (type === 'join_request') return 'SOLICITAÇÕES'
+  if (type === 'group_created' || type === 'request_result') return 'GRUPOS'
+  if (type?.startsWith('wager_')) return 'APOSTAS'
+  return 'SELOS'
+}
 
 function relativeTime(date) {
   const diff = Date.now() - date.getTime()
@@ -495,11 +533,38 @@ const NotifRow = defineComponent({
       else if (mins >= 1440) timeStr = `${Math.floor(mins / 1440)}d`
 
       const isGroupCreated = n.type === 'group_created'
-      const iconName = isInvite ? 'mdi-email-outline' : isRequest ? 'mdi-account-plus' : isRequestResult ? (n.title.includes('aceita') ? 'mdi-account-check' : 'mdi-account-remove') : isGroupCreated ? 'mdi-account-group' : 'mdi-seal'
-      const categoryLabel = isInvite ? 'CONVITES' : isRequest ? 'SOLICITAÇÕES' : (isRequestResult || isGroupCreated) ? 'GRUPOS' : 'SELOS'
+      const isWagerChallenge = n.type === 'wager_challenge'
+      const isWagerAccepted  = n.type === 'wager_accepted'
+      const isWagerWon       = n.type === 'wager_won'
+      const isWagerLost      = n.type === 'wager_lost'
+      const isWagerTied      = n.type === 'wager_tied'
+      const isWagerCancelled = n.type === 'wager_cancelled'
+      const isWager = isWagerChallenge || isWagerAccepted || isWagerWon || isWagerLost || isWagerTied || isWagerCancelled
 
+      const wagerIcon = isWagerChallenge ? 'mdi-sword-cross'
+        : isWagerAccepted ? 'mdi-handshake'
+        : isWagerWon ? 'mdi-trophy'
+        : isWagerLost ? 'mdi-emoticon-sad-outline'
+        : 'mdi-handshake-outline'
+
+      const iconName = isInvite ? 'mdi-email-outline'
+        : isRequest ? 'mdi-account-plus'
+        : isRequestResult ? (n.title.includes('aceita') ? 'mdi-account-check' : 'mdi-account-remove')
+        : isGroupCreated ? 'mdi-account-group'
+        : isWager ? wagerIcon
+        : 'mdi-seal'
+
+      const categoryLabel = isInvite ? 'CONVITES'
+        : isRequest ? 'SOLICITAÇÕES'
+        : (isRequestResult || isGroupCreated) ? 'GRUPOS'
+        : isWager ? 'APOSTAS'
+        : 'SELOS'
+
+      const wagerDescColor = isWagerWon ? '#a5d6a7' : isWagerLost ? '#ef9a9a' : 'rgba(255,255,255,0.6)'
       const descLine = (isInvite || isRequest || isRequestResult || isGroupCreated)
         ? h('div', { style: 'color:rgba(255,255,255,0.6);font-size:12px' }, n.description)
+        : isWager
+        ? h('div', { style: `color:${wagerDescColor};font-size:12px` }, n.description)
         : h('div', { style: 'display:flex;align-items:center;gap:4px' }, [
             h('v-icon', { icon: 'mdi-seal', size: 13, color: '#a5d6a7' }),
             h('span', { style: 'color:#a5d6a7;font-size:12px;font-weight:600' }, n.description),

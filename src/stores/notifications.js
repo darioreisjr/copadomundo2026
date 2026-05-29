@@ -67,7 +67,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
         .limit(30),
       supabase
         .from('notifications')
-        .select('id, type, title, description, read, created_at')
+        .select('id, type, title, description, read, created_at, metadata')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(30),
@@ -139,6 +139,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
         memberId: null,
         sealsAmount: null,
         sealLabel: null,
+        wagerId: n.metadata?.wager_id ?? null,
       })),
       ...(sealRows || []).map(s => {
         const id = `seal-${s.id}`

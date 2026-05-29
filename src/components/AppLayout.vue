@@ -40,6 +40,12 @@
           rounded="lg"
         />
         <v-list-item
+          prepend-icon="mdi-handshake"
+          title="Apostas"
+          :to="{ name: 'Apostas' }"
+          rounded="lg"
+        />
+        <v-list-item
           prepend-icon="mdi-account-group"
           title="Grupos"
           :to="{ name: 'MeusGrupos' }"
@@ -267,6 +273,12 @@
           <v-btn icon="mdi-plus" v-bind="props" />
         </template>
         <v-list bg-color="green-darken-4" density="compact" nav>
+          <v-list-item
+            prepend-icon="mdi-handshake"
+            title="Apostas"
+            :to="{ name: 'Apostas' }"
+            base-color="white"
+          />
           <v-list-item
             prepend-icon="mdi-account-group"
             title="Grupos"

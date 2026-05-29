@@ -92,6 +92,27 @@
                 >
                   Atualizar por 30 selos
                 </v-btn>
+
+                <v-divider class="my-4" />
+
+                <v-btn
+                  color="green-darken-3"
+                  block
+                  variant="tonal"
+                  prepend-icon="mdi-handshake"
+                  @click="showWagerDialog = true"
+                >
+                  Criar Aposta P2P
+                </v-btn>
+                <div class="text-center mt-2">
+                  <router-link
+                    :to="{ name: 'Apostas', query: { gameId: game.id } }"
+                    class="text-caption text-green-darken-3"
+                    style="text-decoration:none"
+                  >
+                    Ver apostas abertas para este jogo →
+                  </router-link>
+                </div>
               </template>
 
               <!-- MODO EDIÇÃO: primeira vez (sem palpite) ou liberado após pagar -->
@@ -221,6 +242,14 @@
       </v-card>
     </v-dialog>
 
+    <!-- Diálogo de criação de aposta P2P -->
+    <CriarApostaDialog
+      v-if="game && showWagerDialog"
+      v-model="showWagerDialog"
+      :game-id="game.id"
+      :game-name="`${game.team_a} vs ${game.team_b}`"
+    />
+
     <!-- Diálogo de confirmação de atualização -->
     <v-dialog v-model="showConfirmDialog" max-width="400">
       <v-card>
@@ -244,6 +273,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
+import CriarApostaDialog from '@/components/CriarApostaDialog.vue'
 import { useGamesStore } from '@/stores/games'
 import { useBetsStore } from '@/stores/bets'
 import { useAuthStore } from '@/stores/auth'
@@ -266,6 +296,7 @@ const error             = ref('')
 const formRef           = ref(null)
 const showConfirmDialog  = ref(false)
 const showExpertDialog   = ref(false)
+const showWagerDialog    = ref(false)
 const editingMode        = ref(false)
 const alreadyPaidExpert  = ref(false)
 const { analysis, loadingAnalysis, loadAnalysis } = useMatchAnalysis()

@@ -1,6 +1,6 @@
 # Bolão Copa 26
 
-Aplicação web de bolão para a Copa do Mundo 2026 com apostas de placar, ranking em tempo real e importação automática de jogos oficiais via OpenFootball + Google Gemini.
+Aplicação web de bolão para a Copa do Mundo 2026 com palpites de placar, apostas P2P de selos entre jogadores, ranking em tempo real e importação automática de jogos oficiais via OpenFootball + Google Gemini.
 
 <img width="1899" height="915" alt="image" src="https://github.com/user-attachments/assets/c0c5ec1c-9892-4b80-bd5f-141a75485331" />
 
@@ -25,7 +25,7 @@ Aplicação web de bolão para a Copa do Mundo 2026 com apostas de placar, ranki
 
 ## Visão Geral
 
-O Bolão da Copa permite que usuários cadastrados façam palpites de placar para cada jogo da Copa do Mundo 2026. Ao final de cada partida, pontos são calculados automaticamente via função SQL no Supabase. Um ranking global classifica os jogadores por pontos, acertos exatos e acertos de vencedor.
+O Bolão da Copa permite que usuários cadastrados façam palpites de placar para cada jogo da Copa do Mundo 2026. Ao final de cada partida, pontos são calculados automaticamente via função SQL no Supabase. Um ranking global classifica os jogadores por pontos, acertos exatos e acertos de vencedor. Além dos palpites, os usuários podem apostar selos uns contra os outros via sistema P2P — criando duelos diretos, apostas abertas ou em grupo, com liquidação automática ao fim de cada jogo.
 
 O painel administrativo oferece:
 - Importação automática dos jogos reais da Copa 2026 via **OpenFootball** (calendário oficial da FIFA)
@@ -91,6 +91,21 @@ O painel administrativo oferece:
 
 - **Sistema de Notificações:** sino no app bar com badge de contagem de não lidas; painel dropdown com duas abas (Não lidas / Lidas); convites de grupo recebidos ficam em "Não lidas" até aceitar ou recusar; **solicitações de entrada em grupos privados** aparecem para o dono com botões Aceitar/Rejeitar inline e em popup de detalhe; selos ganhos aparecem automaticamente; **notificação de criação de grupo** exibe categoria `GRUPOS` com ícone de grupo, título personalizado com o nome do grupo e descrição informativa; ao clicar em qualquer notificação abre um popup de detalhe — convites e solicitações exibem botões de ação, selos exibem o evento e a quantidade, grupos exibem a descrição; estado de leitura persistido no localStorage por usuário; **validação de custo em convites:** ao aceitar um convite que ultrapassa o limite gratuito de 2 grupos, um badge amarelo na lista e um aviso no popup indicam o custo de 30 selos antes de confirmar — se o saldo for insuficiente o botão fica desabilitado; convites acima do limite abrem um **dialog de confirmação** com saldo atual e saldo pós-aceite antes de executar o débito; **selos reservados em solicitações:** quando o solicitante bloqueou selos ao pedir entrada, o painel do dono exibe um badge verde "X selos reservados" tanto na linha da lista quanto no popup de detalhe, com explicação de que serão descontados ao aceitar ou devolvidos ao rejeitar
 
+- **Apostas P2P:** sistema de apostas de selos entre jogadores, acessível pelo menu "Apostas" (`/apostas`):
+  - **Duelo Direto:** cria uma aposta de 1×1 desafiando um usuário específico pelo `@username`; o desafiado recebe notificação imediata com botão de aceite
+  - **Aposta Aberta:** qualquer usuário pode aceitar; aparece na aba "Disponíveis" para todos os demais
+  - **Aposta em Grupo:** criador define o número máximo de participantes (2–9); qualquer um entra até lotar a vaga
+  - O valor apostado (em selos) é debitado imediatamente ao criar ou aceitar — não é possível cancelar após aceite
+  - Criador pode cancelar aposta **Duelo Direto** ou **Aberta** enquanto ainda `pendente` (sem aceitante) e os selos são devolvidos
+  - O palpite já enviado pelo usuário na tela de jogo é automaticamente o palpite da aposta (sem reentrada de placar)
+  - Liquidação automática: quando o admin lança o resultado do jogo, a RPC `resolve_game_wagers` determina o vencedor pela acurácia do palpite (`exact` > `winner/draw` > `null`); em empate no topo todos recebem os selos de volta; o vencedor leva o pool inteiro
+  - **Aba "Minhas Apostas":** divide apostas em andamento (pendente/ativo) e histórico (resolvido/cancelado)
+  - **Aba "Disponíveis":** lista apostas abertas/grupo criadas por outros usuários, com filtro por jogo; botão "Aceitar" desabilitado com tooltip se o usuário ainda não fez palpite naquele jogo
+  - **Aba "Desafios":** duelos diretos onde o usuário é o alvo, com badge de contagem no tab
+  - Cards de aposta exibem tipo, criador, valor em selos, status colorido, progresso de vagas (grupo) e mensagem/provocação opcional
+  - Botão "Criar Aposta P2P" integrado diretamente na tela de palpite (`BetPage`) após o usuário salvar o palpite
+  - Cards de resumo no topo da página: apostas ativas, selos em jogo e apostas ganhas
+
 ### Admin
 - Importação dos jogos reais da Copa 2026 em ~5s (antes levava 20-40s)
 - Sincronização inteligente: jogos novos são inseridos, alterados são atualizados, iguais são ignorados
@@ -116,7 +131,8 @@ copa-do-mundo/
 │   ├── coins-schema.sql            # Schema de selos: tabela seal_rewards, RLS e seed de eventos
 │   ├── seals-awards-schema.sql     # Schema de distribuição: tabela user_seals, coluna total_seals, RPCs de concessão
 │   ├── match-analyses-schema.sql   # Cache de análises do Especialista IA: tabela match_analyses, RLS
-│   └── grupos-schema.sql           # Grupos privados/públicos: tabelas groups e group_members, RLS, funções helper, bucket group-images
+│   ├── grupos-schema.sql           # Grupos privados/públicos: tabelas groups e group_members, RLS, funções helper, bucket group-images
+│   └── apostas-schema.sql          # Apostas P2P: tabelas wagers e wager_participants, RLS, RPCs create/accept/cancel/resolve_game_wagers
 ├── public/
 │   ├── favicon.svg
 │   └── icons.svg
@@ -124,7 +140,7 @@ copa-do-mundo/
     ├── main.js                 # Bootstrap: Vue + Pinia + Vuetify + Router
     ├── App.vue                 # Root component com transição page-fade, provide do seletor de avatar e modal global de selos
     ├── router/
-    │   └── index.js            # 29 rotas com guards de autenticação e papel
+    │   └── index.js            # 30 rotas com guards de autenticação e papel
     ├── stores/
     │   ├── auth.js             # Sessão, perfil, login, registro, logout
     │   ├── avatars.js          # CRUD de avatares + upload para Supabase Storage
@@ -135,7 +151,8 @@ copa-do-mundo/
     │   ├── sealRewards.js      # CRUD dos eventos de selos (somente admin)
     │   ├── seals.js            # Concessão de selos ao usuário: baú diário, estado do modal
     │   ├── toast.js            # Notificações globais (snackbar)
-    │   └── notifications.js   # Agregação de notificações: convites pendentes, selos ganhos e resultados de solicitação de entrada em grupos (tabela `notifications`); leitura persistida no banco
+    │   ├── notifications.js   # Agregação de notificações: convites pendentes, selos ganhos e resultados de solicitação de entrada em grupos (tabela `notifications`); leitura persistida no banco
+    │   └── apostas.js          # Apostas P2P: busca de apostas próprias/abertas/desafios, criar/aceitar/cancelar aposta, mapeamento de erros da RPC
     ├── composables/
     │   └── useMatchAnalysis.js # Cache do Especialista IA: busca no Supabase ou gera via Gemini e salva
     ├── lib/
@@ -150,7 +167,9 @@ copa-do-mundo/
     │   ├── NotificationPanel.vue  # Sino de notificações no app bar: convites de grupo e selos ganhos, popup de detalhe ao clicar, badge de não lidas
     │   ├── LandingNavbar.vue      # Navbar exclusivo da landing page (verde, links das seções, hamburger mobile, botões Entrar/Criar conta)
     │   ├── LandingLayout.vue      # Layout wrapper das páginas públicas de landing (navbar + slot + footer)
-    │   └── LandingFooter.vue      # Footer público da landing com links adaptados para rotas públicas
+    │   ├── LandingFooter.vue      # Footer público da landing com links adaptados para rotas públicas
+    │   ├── WagerCard.vue          # Card reutilizável de aposta P2P: exibe tipo, criador, valor, status, progresso de vagas e ações contextuais
+    │   └── CriarApostaDialog.vue  # Wizard de 3 passos para criar aposta P2P: seleção de tipo, definição de valor/alvo/vagas e confirmação
     └── pages/
         ├── HomePage.vue
         ├── LoginPage.vue        # Layout split-screen redesenhado
@@ -169,6 +188,7 @@ copa-do-mundo/
         ├── MeusGruposOwnerPage.vue     # Meus Grupos: lista e cria grupos próprios do usuário
         ├── GrupoDetailPage.vue         # Detalhe do grupo: ranking privado (/grupos/:id) e abas Membros + Gerenciar (/meus-grupos/:id)
         ├── AccountPage.vue         # Minha Conta: dados pessoais, segurança, preferências, exclusão
+        ├── ApostasPage.vue         # Hub de apostas P2P: abas Minhas Apostas, Disponíveis e Desafios; cards de resumo; picker de jogo antes de criar
         ├── AdminPage.vue
         ├── AdminAvatarsPage.vue    # Gerenciamento de avatares (somente admin)
         ├── AdminSealsPage.vue      # Configuração de selos por evento (somente admin)
@@ -192,6 +212,7 @@ Schema de eventos de selos em [supabase/coins-schema.sql](supabase/coins-schema.
 Schema de distribuição de selos em [supabase/seals-awards-schema.sql](supabase/seals-awards-schema.sql) — aplicar após coins-schema.sql.
 Schema de cache do Especialista IA em [supabase/match-analyses-schema.sql](supabase/match-analyses-schema.sql) — aplicar após seals-awards-schema.sql.
 Schema de grupos privados em [supabase/grupos-schema.sql](supabase/grupos-schema.sql) — aplicar após o schema principal.
+Schema de apostas P2P em [supabase/apostas-schema.sql](supabase/apostas-schema.sql) — aplicar após grupos-schema.sql.
 
 ### Tabelas
 
@@ -314,6 +335,7 @@ Notificações persistentes para o usuário (ex: resultado de solicitação de e
 | title | text | Título exibido no sininho |
 | description | text | Descrição detalhada |
 | read | boolean | Se foi lida (padrão: false) |
+| metadata | jsonb | Dados extras da notificação (ex: `{"wager_id": "..."}` para apostas P2P) |
 | created_at | timestamptz | — |
 
 > RLS: usuário lê e atualiza apenas as próprias notificações; qualquer autenticado pode inserir (necessário para o dono do grupo notificar o solicitante).
@@ -388,14 +410,53 @@ Membros e convites pendentes de cada grupo.
 > `seals_locked > 0`: selos já subtraídos do saldo visível do usuário — ao aceitar a solicitação o campo é zerado; ao rejeitar os selos são devolvidos automaticamente.
 > RLS usa funções `is_group_owner` e `is_group_member` com `security definer` para evitar recursão infinita entre as policies das duas tabelas.
 
+#### `wagers`
+Apostas P2P criadas pelos usuários. Aplicado via [supabase/apostas-schema.sql](supabase/apostas-schema.sql).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| id | uuid | PK |
+| game_id | uuid | FK → games (jogo alvo da aposta) |
+| creator_id | uuid | FK → profiles (quem criou) |
+| wager_type | text | `direct` \| `open` \| `group` |
+| amount | int | Valor apostado por participante (em selos, ≥ 1) |
+| max_participants | int | Máximo de aceitantes — 1 para direct/open, 1–9 para group |
+| status | text | `pending` \| `active` \| `cancelled` \| `settled_win` \| `settled_tie` |
+| winner_id | uuid | FK → profiles (vencedor após liquidação — null em empate) |
+| target_user_id | uuid | FK → profiles (alvo do duelo direto — null para open/group) |
+| message | text | Mensagem/provocação opcional do criador |
+| created_at | timestamptz | — |
+| settled_at | timestamptz | Data/hora da liquidação (nullable) |
+
+> Selos são debitados imediatamente ao criar (creator) e ao aceitar (participants).
+> Liquidação automática via RPC `resolve_game_wagers` chamada ao final de `recalculate_game_bets`.
+> Critério de vitória: `exact` (rank 3) > `winner`/`draw` (rank 2) > null (rank 1) > sem palpite (rank 0). Empate no topo → reembolso total.
+
+#### `wager_participants`
+Participantes que aceitaram uma aposta (não inclui o criador).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| id | uuid | PK |
+| wager_id | uuid | FK → wagers |
+| user_id | uuid | FK → profiles |
+| joined_at | timestamptz | Data/hora do aceite |
+
+> Unique constraint em `(wager_id, user_id)`.
+> Pool total = `wager.amount × (wager_participants.count + 1)`.
+
 ### Funções SQL principais
 
 | Função | Descrição |
 |---|---|
 | `calculate_hit_type(...)` | Compara palpite vs resultado, retorna tipo de acerto |
 | `points_for_hit(hit)` | Converte tipo de acerto em pontos |
-| `recalculate_game_bets(game_id)` | Calcula pontos de todos os palpites de um jogo, atualiza ranking e distribui selos |
+| `recalculate_game_bets(game_id)` | Calcula pontos de todos os palpites de um jogo, atualiza ranking, distribui selos e liquida apostas P2P |
 | `award_game_seals(game_id)` | Distribui selos de `bet_sent`, acerto e `knockout_bonus` para cada apostador do jogo |
+| `create_wager(...)` | Atômico: valida jogo/palpite/saldo, cria aposta e debita selos do criador; notifica o alvo em duelos diretos |
+| `accept_wager(wager_id)` | Atômico: valida status/palpite/saldo, insere participante, debita selos e ativa aposta se lotada |
+| `cancel_wager(wager_id)` | Cancela aposta pendente, reembolsa criador e eventuais participantes (grupo parcial) |
+| `resolve_game_wagers(game_id)` | Liquida todas as apostas do jogo: determina vencedor por acurácia do palpite, distribui pool ou reembolsa em empate |
 | `claim_daily_seal()` | Concede selos do baú diário ao usuário autenticado (idempotente por dia) |
 | `unlock_avatar(p_avatar_id)` | Atômico: verifica saldo de selos, debita e registra o desbloqueio em `user_avatar_unlocks` |
 | `set_default_avatar(p_avatar_id)` | Admin only: limpa o avatar padrão anterior e define o novo (somente admins) |
@@ -451,6 +512,7 @@ cp .env.example .env
 # 4. supabase/seals-awards-schema.sql
 # 5. supabase/match-analyses-schema.sql
 # 6. supabase/grupos-schema.sql
+# 7. supabase/apostas-schema.sql
 
 # 5. Adicione a constraint de unicidade (se o banco já existia)
 # Execute no SQL Editor do Supabase:
@@ -517,6 +579,7 @@ npm run preview  # Preview do build local
 | `/games` | GamesPage | Autenticado |
 | `/games/:id/bet` | BetPage | Autenticado |
 | `/ranking` | RankingPage | Autenticado |
+| `/apostas` | ApostasPage | Autenticado |
 | `/grupos` | MeusGruposPage | Autenticado |
 | `/grupos/:id` | GrupoDetailPage | Autenticado |
 | `/meus-grupos` | MeusGruposOwnerPage | Autenticado |
@@ -542,6 +605,7 @@ npm run preview  # Preview do build local
 | Lançar resultados | ❌ | ✅ |
 | Acessar painel admin | ❌ | ✅ |
 | Ver palpites de outros | ❌ | ✅ |
+| Criar e aceitar apostas P2P | ✅ | ✅ |
 | Criar grupos e convidar membros | ✅ | ✅ |
 | Solicitar entrada em grupo privado | ✅ | ✅ |
 | Aceitar/recusar convites e solicitações | ✅ (dono) | ✅ |
@@ -642,3 +706,37 @@ Cada concessão é idempotente: se a RPC for chamada novamente para o mesmo jogo
 
 ### Visualização
 O total acumulado de selos aparece no card de perfil do **Dashboard** ao lado da posição no ranking, atualizado em tempo real após qualquer concessão.
+
+---
+
+## Apostas P2P — Funcionamento
+
+### Criar aposta
+O usuário acessa `/apostas` ou clica em **"Criar Aposta P2P"** diretamente na tela de palpite de um jogo (disponível após salvar o palpite). Um wizard de 3 passos guia a criação:
+
+1. **Tipo:** Duelo Direto, Aberta ou Grupo
+2. **Detalhes:** valor em selos, `@username` do adversário (duelo), número de vagas (grupo) e mensagem opcional
+3. **Confirmação:** resumo com saldo pós-criação
+
+Ao confirmar, os selos são debitados imediatamente via RPC `create_wager` (operação atômica). Para duelos diretos, o adversário recebe notificação no sininho com botão de aceite.
+
+### Aceitar aposta
+- **Duelo Direto:** apenas o usuário alvo pode aceitar (aba "Desafios")
+- **Aberta:** qualquer usuário autenticado que tenha feito palpite naquele jogo pode aceitar (aba "Disponíveis")
+- **Grupo:** múltiplos usuários podem entrar até o limite de vagas; a aposta ativa quando lota
+
+Ao aceitar, os selos do aceitante são debitados imediatamente via RPC `accept_wager`.
+
+### Cancelar aposta
+Apenas o criador pode cancelar, e somente enquanto a aposta está `pendente` (sem aceitantes). Os selos são devolvidos a todos (criador + eventuais participantes de grupo parcialmente preenchido).
+
+### Liquidação automática
+Quando o admin lança o resultado de um jogo, `recalculate_game_bets` chama `resolve_game_wagers`, que:
+
+1. Coleta todos os participantes de cada aposta do jogo (criador + aceitantes)
+2. Rankeia cada um pela acurácia do palpite: `exact` (3) > `winner`/`draw` (2) > `null` (1) > sem palpite (0)
+3. Se há **um único vencedor**: recebe o pool inteiro (`amount × nº participantes`); os demais recebem notificação de derrota
+4. Se há **empate no topo**: todos recebem os selos de volta (`settled_tie`)
+5. Apostas que nunca foram aceitas (apenas criador): canceladas automaticamente com reembolso
+
+O evento `wager_won` é registrado em `user_seals` para o vencedor, e notificações são enviadas a todos os participantes.

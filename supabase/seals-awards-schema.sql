@@ -198,5 +198,8 @@ begin
 
   -- Distribui selos para os apostadores deste jogo
   perform public.award_game_seals(p_game_id);
+
+  -- Resolve apostas P2P para este jogo
+  perform public.resolve_game_wagers(p_game_id);
 end;
 $$;
