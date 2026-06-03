@@ -23,7 +23,7 @@
               <p class="hero-subtitle mb-10 mx-auto">
                 Dê seus palpites nos jogos, acumule pontos e dispute o ranking geral com seus amigos.
               </p>
-              <div class="d-flex flex-wrap justify-center gap-3 mb-12">
+              <div class="d-flex flex-wrap justify-center gap-3 mb-12 hero-btns">
                 <v-btn
                   :to="{ name: 'Register' }"
                   color="#f5c542"
@@ -47,7 +47,7 @@
               </div>
 
               <!-- Stat pills -->
-              <div class="d-flex flex-wrap justify-center gap-3">
+              <div class="d-flex flex-wrap justify-center gap-3 hero-pills-grid">
                 <div
                   v-for="card in heroCards"
                   :key="card.label"
@@ -61,47 +61,6 @@
           </v-row>
         </v-container>
       </div>
-    </section>
-
-    <!-- ===== CTA FINAL ===== -->
-    <section class="section-cta py-16 text-center">
-      <v-container>
-        <v-row justify="center">
-          <v-col cols="12" md="7">
-            <img
-              src="@/image/logo.png"
-              alt="Bolão Copa 26"
-              style="height:clamp(56px,14vw,100px);width:auto;margin-bottom:32px"
-            />
-            <h2 class="cta-title mb-5 reveal">Pronto para entrar no bolão?</h2>
-            <p class="cta-subtitle mb-12 mx-auto reveal">
-              Crie sua conta, acompanhe os jogos da Copa e dispute cada ponto no ranking.
-            </p>
-            <div class="d-flex flex-wrap justify-center gap-4 reveal">
-              <v-btn
-                :to="{ name: 'Register' }"
-                color="#f5c542"
-                size="x-large"
-                class="font-weight-bold text-black px-12"
-                elevation="0"
-                rounded="lg"
-              >
-                Criar conta grátis
-              </v-btn>
-              <v-btn
-                :to="{ name: 'Login' }"
-                variant="outlined"
-                size="x-large"
-                class="font-weight-bold px-12"
-                style="border-color:rgba(255,255,255,.5);color:#fff"
-                rounded="lg"
-              >
-                Já tenho conta
-              </v-btn>
-            </div>
-          </v-col>
-        </v-row>
-      </v-container>
     </section>
 
     <LandingFooter />
@@ -254,23 +213,29 @@ const heroCards = [
   font-weight: 500;
 }
 
-/* ---- CTA ---- */
-.section-cta { background: linear-gradient(160deg, #0d3d1f 0%, #145c27 50%, #1f7a33 100%); }
-
-.cta-title {
-  font-size: clamp(1.6rem, 5vw, 2.6rem);
-  font-weight: 800;
-  color: #fff;
-  line-height: 1.2;
-}
-.cta-subtitle {
-  font-size: 1.1rem;
-  color: rgba(255,255,255,.7);
-  max-width: 520px;
-  line-height: 1.7;
-}
 
 /* ---- Gap utility ---- */
 .gap-3 { gap: 12px; }
 .gap-4 { gap: 16px; }
+
+/* ---- Mobile hero adjustments ---- */
+@media (max-width: 599px) {
+  .hero-btns {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hero-btns .v-btn {
+    width: 100% !important;
+  }
+
+  .hero-pills-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .hero-pills-grid .hero-pill {
+    min-width: unset;
+    width: 100%;
+  }
+}
 </style>
