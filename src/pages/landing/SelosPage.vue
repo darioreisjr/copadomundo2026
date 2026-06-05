@@ -126,7 +126,7 @@ const selosEarn = [
     iconColor: '#f59e0b',
     value: '+50 selos',
     label: 'Placar exato',
-    desc: 'Acertou o placar exato? Bônus especial — o maior prêmio de palpite.',
+    desc: 'Acertou o placar exato? Bônus especial, o maior prêmio de palpite.',
   },
   {
     icon: 'mdi-tournament',
