@@ -393,6 +393,8 @@
     </v-footer>
     </v-main>
 
+    <ScrollToTopButton v-if="isPublic" />
+
     <v-snackbar
       v-model="toast.show"
       location="bottom right"
@@ -412,6 +414,7 @@
 <script setup>
 import { ref, inject, watch, computed } from 'vue'
 import { useDisplay } from 'vuetify'
+import ScrollToTopButton from '@/components/ScrollToTopButton.vue'
 import { useAuthStore }    from '@/stores/auth'
 import { useToastStore }   from '@/stores/toast'
 import { useAvatarsStore } from '@/stores/avatars'

@@ -5,10 +5,12 @@
       <slot />
       <LandingFooter />
     </v-main>
+    <ScrollToTopButton />
   </v-app>
 </template>
 
 <script setup>
 import LandingNavbar from '@/components/LandingNavbar.vue'
 import LandingFooter from '@/components/LandingFooter.vue'
+import ScrollToTopButton from '@/components/ScrollToTopButton.vue'
 </script>

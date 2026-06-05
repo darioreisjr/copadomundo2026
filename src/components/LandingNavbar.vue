@@ -49,40 +49,76 @@
     </div>
 
     <!-- Hamburger mobile -->
-    <v-menu v-model="mobileOpen" location="bottom end" :close-on-content-click="true">
-      <template #activator="{ props }">
-        <v-btn
-          v-bind="props"
-          icon
-          variant="text"
-          class="d-md-none mr-1"
-          color="white"
-          size="small"
-        >
-          <v-icon>{{ mobileOpen ? 'mdi-close' : 'mdi-menu' }}</v-icon>
-        </v-btn>
-      </template>
-      <v-list min-width="220" bg-color="green-darken-4" class="pa-2">
-        <v-list-item
-          v-for="link in navLinks"
-          :key="link.name"
-          :to="link.to"
-          :title="link.label"
-          class="mobile-nav-item rounded-lg mb-1"
-        />
-        <v-divider class="my-2" style="border-color:rgba(255,255,255,.15)" />
-        <v-list-item
-          :to="{ name: 'Login' }"
-          title="Entrar"
-          class="mobile-nav-item rounded-lg mb-1"
-        />
-        <v-list-item
-          :to="{ name: 'Register' }"
-          title="Criar conta"
-          class="mobile-nav-item mobile-nav-item--cta rounded-lg"
-        />
-      </v-list>
-    </v-menu>
+    <v-btn
+      icon
+      variant="text"
+      class="d-md-none mr-1"
+      color="white"
+      size="small"
+      @click="mobileOpen = true"
+    >
+      <v-icon>mdi-menu</v-icon>
+    </v-btn>
+
+    <v-dialog
+      v-model="mobileOpen"
+      fullscreen
+      transition="dialog-top-transition"
+      class="d-md-none"
+    >
+      <v-card color="#1b5e20" class="d-flex flex-column" style="height:100%">
+        <v-toolbar color="#1b5e20" flat>
+          <router-link to="/" class="nav-logo ml-2" @click="mobileOpen = false">
+            <img src="@/image/logo.png" alt="Bolão Copa 26" />
+          </router-link>
+          <v-spacer />
+          <v-btn icon="mdi-close" color="white" @click="mobileOpen = false" />
+        </v-toolbar>
+
+        <v-divider style="border-color:rgba(255,255,255,.15)" />
+
+        <v-list bg-color="transparent" class="px-4 pt-4 flex-grow-1">
+          <v-list-item
+            v-for="link in navLinks"
+            :key="link.name"
+            :to="link.to"
+            :title="link.label"
+            class="mobile-nav-item rounded-lg mb-2"
+            min-height="52"
+            @click="mobileOpen = false"
+          />
+        </v-list>
+
+        <div class="px-4 pb-8 d-flex flex-column" style="gap:12px">
+          <v-divider class="mb-3" style="border-color:rgba(255,255,255,.15)" />
+          <v-btn
+            :to="{ name: 'Login' }"
+            variant="outlined"
+            size="large"
+            class="font-weight-bold"
+            style="border-color:rgba(255,255,255,.6);color:#fff"
+            rounded="lg"
+            block
+            @click="mobileOpen = false"
+          >
+            Entrar
+          </v-btn>
+          <v-btn
+            :to="{ name: 'Register' }"
+            variant="flat"
+            color="#f5c542"
+            size="large"
+            class="font-weight-bold text-black"
+            elevation="0"
+            rounded="lg"
+            block
+            @click="mobileOpen = false"
+          >
+            Criar conta
+          </v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
   </v-app-bar>
 </template>
 
