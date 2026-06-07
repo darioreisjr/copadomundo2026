@@ -4,6 +4,7 @@
       v-if="visible"
       icon="mdi-chevron-up"
       class="scroll-to-top-btn"
+      :class="{ 'scroll-to-top-btn--raised': raised }"
       color="#f5c542"
       size="small"
       elevation="4"
@@ -14,6 +15,10 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+
+defineProps({
+  raised: { type: Boolean, default: false },
+})
 
 const visible = ref(false)
 
@@ -35,6 +40,11 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   bottom: 28px;
   right: 24px;
   z-index: 999;
+  transition: bottom .2s ease;
+}
+
+.scroll-to-top-btn--raised {
+  bottom: 84px;
 }
 
 .scroll-top-fade-enter-active,

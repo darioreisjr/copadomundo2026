@@ -325,7 +325,7 @@
       </v-menu>
     </v-bottom-navigation>
 
-    <v-main :style="display.xs.value && !isPublic && auth.user ? 'padding-bottom:56px' : ''">
+    <v-main :style="{ paddingBottom: mainPaddingBottom }">
       <v-container :fluid="fluid" :class="[fluid ? 'pa-0' : 'py-6', 'main-content']">
         <slot />
       </v-container>
@@ -393,7 +393,8 @@
     </v-footer>
     </v-main>
 
-    <ScrollToTopButton v-if="isPublic" />
+    <ScrollToTopButton :raised="showSelosBar" />
+    <SelosFooterBar v-if="showSelosBar" />
 
     <v-snackbar
       v-model="toast.show"
@@ -412,20 +413,22 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, computed } from 'vue'
+import { ref, inject, watch, computed, toRefs } from 'vue'
 import { useDisplay } from 'vuetify'
 import ScrollToTopButton from '@/components/ScrollToTopButton.vue'
+import SelosFooterBar from '@/components/SelosFooterBar.vue'
 import { useAuthStore }    from '@/stores/auth'
 import { useToastStore }   from '@/stores/toast'
 import { useAvatarsStore } from '@/stores/avatars'
 import { useGroupsStore }  from '@/stores/groups'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import NotificationPanel from '@/components/NotificationPanel.vue'
 
-const { fluid, isPublic } = defineProps({
+const props = defineProps({
   fluid: { type: Boolean, default: false },
   isPublic: { type: Boolean, default: false },
 })
+const { fluid, isPublic } = toRefs(props)
 
 const display      = useDisplay()
 const auth         = useAuthStore()
@@ -433,7 +436,16 @@ const avatarsStore = useAvatarsStore()
 const toast        = useToastStore()
 const groupsStore  = useGroupsStore()
 const router       = useRouter()
+const route        = useRoute()
 
+const showSelosBar = computed(() => !isPublic.value && !!auth.user && route.name !== 'Dashboard')
+
+const mainPaddingBottom = computed(() => {
+  const bottomNav = display.xs.value && !isPublic.value && auth.user ? 56 : 0
+  const selosBar  = showSelosBar.value ? 44 : 0
+  const total = bottomNav + selosBar
+  return total ? `${total}px` : ''
+})
 
 const openAvatarPicker = inject('openAvatarPicker', () => {})
 
