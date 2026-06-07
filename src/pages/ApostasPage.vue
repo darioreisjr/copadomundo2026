@@ -88,7 +88,7 @@
                       <WagerCard
                         :wager="w"
                         mode="mine"
-                        :ha-palpite="false"
+                        :has-palpite="false"
                         @cancel="handleCancel"
                       />
                     </v-col>
@@ -105,7 +105,7 @@
                       <WagerCard
                         :wager="w"
                         mode="mine"
-                        :ha-palpite="false"
+                        :has-palpite="false"
                         @cancel="handleCancel"
                       />
                     </v-col>
@@ -154,7 +154,7 @@
                     <WagerCard
                       :wager="w"
                       mode="available"
-                      :ha-palpite="hasPalpiteForGame(w.game_id)"
+                      :has-palpite="hasPalpiteForGame(w.game_id)"
                       @accept="handleAccept"
                     />
                   </v-col>
@@ -180,7 +180,7 @@
                     <WagerCard
                       :wager="w"
                       mode="challenge"
-                      :ha-palpite="hasPalpiteForGame(w.game_id)"
+                      :has-palpite="hasPalpiteForGame(w.game_id)"
                       @accept="handleAccept"
                     />
                   </v-col>
@@ -348,7 +348,7 @@ function formatDate(dateStr) {
 onMounted(async () => {
   // Inicializar jogos e palpites para verificar hasPalpite
   if (!gamesStore.games?.length) await gamesStore.fetchGames()
-  if (!betsStore.myBets?.length) await betsStore.fetchMyBets()
+  if (!betsStore.bets?.length) await betsStore.fetchMyBets()
 
   // Pré-filtro por gameId via query param
   const qGameId = route.query.gameId
