@@ -393,7 +393,7 @@
     </v-footer>
     </v-main>
 
-    <ScrollToTopButton :raised="showSelosBar" />
+    <ScrollToTopButton :raised="hasMobileBottomNav" />
     <SelosFooterBar v-if="showSelosBar" />
 
     <v-snackbar
@@ -439,11 +439,11 @@ const router       = useRouter()
 const route        = useRoute()
 
 const showSelosBar = computed(() => !isPublic.value && !!auth.user && route.name !== 'Dashboard')
+const hasMobileBottomNav = computed(() => display.xs.value && !isPublic.value && !!auth.user)
 
 const mainPaddingBottom = computed(() => {
-  const bottomNav = display.xs.value && !isPublic.value && auth.user ? 56 : 0
-  const selosBar  = showSelosBar.value ? 44 : 0
-  const total = bottomNav + selosBar
+  const bottomNav = hasMobileBottomNav.value ? 56 : 0
+  const total = bottomNav
   return total ? `${total}px` : ''
 })
 
