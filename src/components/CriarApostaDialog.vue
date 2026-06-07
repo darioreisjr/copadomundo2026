@@ -3,29 +3,34 @@
     <v-card rounded="lg">
       <v-toolbar color="green-darken-4" flat>
         <v-toolbar-title class="text-white font-weight-bold">
-          <v-icon icon="mdi-handshake" class="mr-2" />
-          Criar Aposta P2P
+          Criar Aposta
         </v-toolbar-title>
         <v-spacer />
         <v-btn icon="mdi-close" color="white" @click="$emit('update:modelValue', false)" />
       </v-toolbar>
 
       <!-- Stepper de progresso -->
-      <div class="d-flex align-center px-6 pt-4 pb-2 gap-2">
+      <div class="d-flex align-center px-6 pt-4 gap-2">
         <template v-for="(label, i) in stepLabels" :key="i">
-          <div
-            class="step-dot"
-            :class="{ active: step === i + 1, done: step > i + 1 }"
-          >
-            <v-icon v-if="step > i + 1" icon="mdi-check" size="14" />
-            <span v-else class="text-caption font-weight-bold">{{ i + 1 }}</span>
+          <div class="step-col">
+            <div
+              class="step-dot"
+              :class="{ active: step === i + 1, done: step > i + 1 }"
+            >
+              <v-icon v-if="step > i + 1" :key="`check-${i}`" icon="mdi-check" size="14" />
+              <span v-else :key="`num-${i}`" class="text-caption font-weight-bold">{{ i + 1 }}</span>
+            </div>
+            <div
+              class="text-caption pt-1"
+              :class="step === i + 1 ? 'text-green-darken-3 font-weight-bold' : 'text-medium-emphasis'"
+            >
+              {{ label }}
+            </div>
           </div>
           <div v-if="i < stepLabels.length - 1" class="step-line" :class="{ done: step > i + 1 }" />
         </template>
       </div>
-      <div class="text-center text-caption text-medium-emphasis pb-3">
-        {{ stepLabels[step - 1] }}
-      </div>
+      <div class="pb-2" />
 
       <v-divider />
 
@@ -122,8 +127,8 @@
         <!-- PASSO 3: Confirmação -->
         <template v-if="step === 3">
           <v-card color="grey-lighten-4" variant="flat" rounded="lg" class="pa-4 mb-4">
-            <div class="d-flex align-center gap-3 mb-3">
-              <v-icon :icon="selectedType?.icon" color="green-darken-3" size="28" />
+            <div class="d-flex align-center gap-4 mb-3">
+              <v-icon :icon="selectedType?.icon" color="green-darken-3" size="28" class="mr-2" />
               <div>
                 <div class="text-body-1 font-weight-bold">{{ selectedType?.label }}</div>
                 <div class="text-caption text-medium-emphasis">{{ gameName }}</div>
@@ -132,7 +137,7 @@
             <v-divider class="mb-3" />
             <div class="d-flex justify-space-between mb-2">
               <span class="text-body-2 text-medium-emphasis">Valor apostado</span>
-              <v-chip size="small" color="amber-darken-2" prepend-icon="mdi-seal">
+              <v-chip size="small" color="green-darken-3" prepend-icon="mdi-seal">
                 {{ form.amount }} selos
               </v-chip>
             </div>
@@ -155,10 +160,10 @@
               </div>
             </template>
             <v-divider class="mt-3 mb-2" />
-            <div class="d-flex justify-space-between">
+            <div class="d-flex justify-space-between align-center">
               <span class="text-body-2 text-medium-emphasis">Saldo após criar</span>
               <span class="text-body-2 font-weight-bold" :class="afterCreate < 0 ? 'text-red' : 'text-green-darken-3'">
-                {{ afterCreate }} selos
+                {{ auth.profile?.total_seals ?? 0 }} - {{ form.amount }} = {{ afterCreate }} selos
               </span>
             </div>
           </v-card>
@@ -323,13 +328,20 @@ async function handleCreate() {
 <style scoped>
 .type-card {
   transition: transform .15s ease, box-shadow .15s ease;
-  min-height: 110px;
+  height: 130px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 .type-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.12) !important; }
+
+.step-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
 
 .step-dot {
   width: 26px; height: 26px;
@@ -344,6 +356,8 @@ async function handleCreate() {
 
 .step-line {
   flex-grow: 1; height: 2px;
+  align-self: flex-start;
+  margin-top: 13px;
   background: #e0e0e0;
   transition: background .2s;
 }
