@@ -72,7 +72,7 @@ O painel administrativo oferece:
 - Página de Termos de Uso e Privacidade com 8 seções completas (LGPD, regras do bolão, privacidade, contato)
 - Página de confirmação de conta com instruções passo a passo para ativar a conta via e-mail, exibida automaticamente após o cadastro bem-sucedido
 - Transições animadas entre páginas (fade + translate)
-- **Navegação responsiva:** menu lateral fixo no desktop; barra de ícones no rodapé (mobile) com "Grupos" e "Criar Grupo" agrupados sob ícone "+" e menu admin agrupado sob ícone de escudo; hambúrguer abre tela cheia no mobile; abas do Painel Admin, Minha Conta e detalhe de grupo substituídas por select dropdown no mobile; listas administrativas (avatares, selos) exibidas como cards adaptativos com ações em botões de largura total no mobile; página de detalhe do grupo com layout mobile dedicado (botão Voltar com texto, avatar e botão Sair na mesma linha, nome/descrição/status em linhas separadas); página "Meus Grupos" com input de pesquisa em largura total e botão "Encontrar Grupo" em linha separada no mobile; página "Meus Grupos" (`/meus-grupos`) com botão "+ Criar Grupo" em linha separada abaixo do título, ocupando largura total no mobile (desktop inalterado); input de convidar membro por `@username` em `/meus-grupos/:id` ocupa largura total no mobile
+- **Navegação responsiva:** menu lateral fixo no desktop; barra de ícones no rodapé (mobile) com "Grupos" e "Criar Grupo" agrupados sob ícone "+" e menu admin agrupado sob ícone de escudo; hambúrguer abre tela cheia no mobile; abas do Painel Admin, Minha Conta, detalhe de grupo e Apostas substituídas por select dropdown no mobile; listas administrativas (avatares, selos) exibidas como cards adaptativos com ações em botões de largura total no mobile; página de detalhe do grupo com layout mobile dedicado (botão Voltar com texto, avatar e botão Sair na mesma linha, nome/descrição/status em linhas separadas); página "Meus Grupos" com input de pesquisa em largura total e botão "Encontrar Grupo" em linha separada no mobile; página "Meus Grupos" (`/meus-grupos`) com botão "+ Criar Grupo" em linha separada abaixo do título, ocupando largura total no mobile (desktop inalterado); input de convidar membro por `@username` em `/meus-grupos/:id` ocupa largura total no mobile
 - Página "Como usar" com duas abas: guia de login e guia completo de criação de conta
 - Toast de boas-vindas ao fazer login e toast de erro em credenciais inválidas
 - Dashboard pessoal com card de perfil (avatar escolhido pelo usuário ou inicial do nome, pontos, posição no ranking e total de selos), jogos abertos para palpite, próximos jogos e últimos resultados
@@ -102,9 +102,10 @@ O painel administrativo oferece:
   - **Aba "Minhas Apostas":** divide apostas em andamento (pendente/ativo) e histórico (resolvido/cancelado)
   - **Aba "Disponíveis":** lista apostas abertas/grupo criadas por outros usuários, com filtro por jogo; botão "Aceitar" desabilitado com tooltip se o usuário ainda não fez palpite naquele jogo
   - **Aba "Desafios":** duelos diretos onde o usuário é o alvo, com badge de contagem no tab
-  - Cards de aposta exibem tipo, criador, valor em selos, status colorido, progresso de vagas (grupo) e mensagem/provocação opcional
+  - Cards de aposta com tamanho uniforme exibem o jogo, criador, valor em selos, status colorido (na paleta verde do app), progresso de vagas (grupo) e descrição da aposta opcional; texto do criador contextualiza o tipo ("Você criou esta aposta em grupo", "criou e ainda permanece aberta", "Você tem um duelo direto com **Nome**")
   - Botão "Criar Aposta P2P" integrado diretamente na tela de palpite (`BetPage`) após o usuário salvar o palpite
-  - Cards de resumo no topo da página: apostas ativas, selos em jogo e apostas ganhas
+  - Cards de resumo no topo da página: apostas ativas, selos em jogo e apostas ganhas (paleta verde)
+  - **Cabeçalho responsivo:** título e botão "Nova Aposta" centralizados e empilhados no mobile (botão abaixo do subtítulo); lado a lado no desktop
 
 ### Admin
 - Importação dos jogos reais da Copa 2026 em ~5s (antes levava 20-40s)

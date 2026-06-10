@@ -2,7 +2,7 @@
   <AppLayout>
 
     <!-- Cabeçalho -->
-    <div class="d-flex align-center gap-3 mb-5">
+    <div class="d-flex flex-column flex-sm-row align-center align-sm-center gap-3 mb-5 text-center text-sm-left">
       <div>
         <h1 class="text-h5 font-weight-bold">Apostas entre Jogadores</h1>
         <p class="text-caption text-medium-emphasis">Aposte selos contra outros jogadores</p>
@@ -20,7 +20,50 @@
 
     <!-- Tabs -->
     <v-card elevation="2" rounded="lg">
-      <v-tabs v-model="tab" color="green-darken-3" grow>
+      <!-- Seletor (mobile) -->
+      <v-select
+        v-model="tab"
+        :items="tabOptions"
+        item-title="label"
+        item-value="value"
+        variant="solo"
+        flat
+        density="comfortable"
+        hide-details
+        class="d-flex d-sm-none"
+      >
+        <template #item="{ item, props: itemProps }">
+          <v-list-item v-bind="itemProps">
+            <template #prepend>
+              <v-badge
+                v-if="item.raw.value === 'desafios'"
+                :content="apostasStore.directChallenges.length"
+                :model-value="apostasStore.directChallenges.length > 0"
+                color="red"
+              >
+                <v-icon :icon="item.raw.icon" />
+              </v-badge>
+              <v-icon v-else :icon="item.raw.icon" />
+            </template>
+          </v-list-item>
+        </template>
+        <template #selection="{ item }">
+          <v-badge
+            v-if="item.raw.value === 'desafios'"
+            :content="apostasStore.directChallenges.length"
+            :model-value="apostasStore.directChallenges.length > 0"
+            color="red"
+            class="mr-2"
+          >
+            <v-icon :icon="item.raw.icon" />
+          </v-badge>
+          <v-icon v-else :icon="item.raw.icon" class="mr-2" />
+          {{ item.raw.label }}
+        </template>
+      </v-select>
+
+      <!-- Tabs (desktop) -->
+      <v-tabs v-model="tab" color="green-darken-3" grow class="d-none d-sm-flex">
         <v-tab value="minhas">
           <v-icon start icon="mdi-account-check" />
           Minhas Apostas
@@ -57,10 +100,10 @@
                 </v-card>
               </v-col>
               <v-col cols="6">
-                <v-card color="amber-lighten-4" variant="flat" rounded="lg" class="pa-3 text-center">
+                <v-card color="green-lighten-4" variant="flat" rounded="lg" class="pa-3 text-center">
                   <div class="d-flex align-center justify-center gap-1">
-                    <v-icon icon="mdi-seal" color="amber-darken-3" size="18" />
-                    <span class="text-h6 font-weight-bold text-amber-darken-3">{{ apostasStore.totalSealsAtStake }}</span>
+                    <v-icon icon="mdi-seal" color="green-darken-3" size="18" />
+                    <span class="text-h6 font-weight-bold text-green-darken-3">{{ apostasStore.totalSealsAtStake }}</span>
                   </div>
                   <div class="text-caption text-medium-emphasis">Selos em Jogo</div>
                 </v-card>
@@ -93,8 +136,8 @@
               </div>
               <v-row dense class="mb-3">
                 <v-col cols="12">
-                  <v-card color="blue-lighten-4" variant="flat" rounded="lg" class="pa-3 text-center">
-                    <div class="text-h6 font-weight-bold text-blue-darken-3">{{ apostasStore.wonCount }}</div>
+                  <v-card color="green-lighten-4" variant="flat" rounded="lg" class="pa-3 text-center">
+                    <div class="text-h6 font-weight-bold text-green-darken-3">{{ apostasStore.wonCount }}</div>
                     <div class="text-caption text-medium-emphasis">Apostas Ganhas</div>
                   </v-card>
                 </v-col>
@@ -261,6 +304,11 @@ const betsStore    = useBetsStore()
 const gamesStore   = useGamesStore()
 
 const tab              = ref('minhas')
+const tabOptions = [
+  { value: 'minhas',     label: 'Minhas Apostas', icon: 'mdi-account-check' },
+  { value: 'disponiveis', label: 'Disponíveis',   icon: 'mdi-earth' },
+  { value: 'desafios',   label: 'Desafios',       icon: 'mdi-sword-cross' },
+]
 const filterGameId     = ref(null)
 const showCreateDialog = ref(false)
 const showGamePicker   = ref(false)
