@@ -54,14 +54,14 @@
 
 <script setup>
 import { computed, toRef } from 'vue'
-import { useBetWindow } from '@/composables/useBetWindow'
+import { useBetWindow, getEffectiveStatus } from '@/composables/useBetWindow'
 
 const props = defineProps({
   game: { type: Object, required: true },
   bet:  { type: Object, default: null },
 })
 
-const { isOpen, isBeforeOpen } = useBetWindow(toRef(props, 'game'))
+const { isOpen, now } = useBetWindow(toRef(props, 'game'))
 
 const statusMap = {
   upcoming: { label: 'Em breve',         color: 'grey' },
@@ -81,23 +81,11 @@ const phaseMap = {
 
 const canBet = computed(() => isOpen.value)
 
-const statusLabel = computed(() => {
-  if (['live', 'finished'].includes(props.game.status)) {
-    return statusMap[props.game.status]?.label ?? props.game.status
-  }
-  if (isOpen.value) return statusMap.open.label
-  if (isBeforeOpen.value) return statusMap.upcoming.label
-  return statusMap.closed.label
-})
+const effectiveStatus = computed(() => getEffectiveStatus(props.game, now.value))
 
-const statusColor = computed(() => {
-  if (['live', 'finished'].includes(props.game.status)) {
-    return statusMap[props.game.status]?.color ?? 'grey'
-  }
-  if (isOpen.value) return statusMap.open.color
-  if (isBeforeOpen.value) return statusMap.upcoming.color
-  return statusMap.closed.color
-})
+const statusLabel = computed(() => statusMap[effectiveStatus.value]?.label ?? effectiveStatus.value)
+
+const statusColor = computed(() => statusMap[effectiveStatus.value]?.color ?? 'grey')
 
 const phaseLabel  = computed(() => phaseMap[props.game.phase] ?? props.game.phase)
 const cardColor   = computed(() => isOpen.value ? 'bg-green-lighten-5' : '')

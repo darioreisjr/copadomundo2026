@@ -31,3 +31,13 @@ export function useBetWindow(gameRef) {
 
   return { isOpen, isBeforeOpen, isAfterClose, now }
 }
+
+export function getEffectiveStatus(game, now = Date.now()) {
+  if (['live', 'finished'].includes(game.status)) return game.status
+  if (!game.bet_opens_at || !game.bet_closes_at) return game.status
+  const opens = new Date(game.bet_opens_at).getTime()
+  const closes = new Date(game.bet_closes_at).getTime()
+  if (now < opens) return 'upcoming'
+  if (now < closes) return 'open'
+  return 'closed'
+}

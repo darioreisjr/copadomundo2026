@@ -213,6 +213,12 @@
                 <td>{{ formatDate(game.match_date) }}</td>
                 <td>{{ phaseMap[game.phase] ?? game.phase }}</td>
                 <td>
+                  <div v-if="!['live', 'finished'].includes(game.status)" class="mb-1">
+                    <v-chip :color="statusMap[effectiveStatus(game)]?.color" size="small" label>
+                      {{ statusMap[effectiveStatus(game)]?.label ?? effectiveStatus(game) }}
+                    </v-chip>
+                    <span class="text-caption text-medium-emphasis ml-1">(auto)</span>
+                  </div>
                   <v-select
                     :model-value="game.status"
                     :items="statusOptions"
@@ -363,8 +369,9 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
+import { getEffectiveStatus } from '@/composables/useBetWindow'
 import { useGamesStore } from '@/stores/games'
 import { enrichTeams } from '@/lib/gemini'
 import { fetchWorldCupMatches } from '@/lib/footballApi'
@@ -484,6 +491,24 @@ const statusOptions = [
   { title: 'Ao vivo',    value: 'live' },
   { title: 'Finalizado', value: 'finished' },
 ]
+const statusMap = {
+  upcoming: { label: 'Em breve',   color: 'grey' },
+  open:     { label: 'Aberto',     color: 'green' },
+  closed:   { label: 'Encerrado',  color: 'orange' },
+  live:     { label: 'Ao vivo',    color: 'red' },
+  finished: { label: 'Finalizado', color: 'blue' },
+}
+
+const nowTick = ref(Date.now())
+let nowTickTimer
+onMounted(() => {
+  nowTickTimer = setInterval(() => { nowTick.value = Date.now() }, 60000)
+})
+onUnmounted(() => clearInterval(nowTickTimer))
+
+function effectiveStatus(game) {
+  return getEffectiveStatus(game, nowTick.value)
+}
 const phaseOptions = [
   { title: 'Fase de grupos', value: 'group' },
   { title: 'Oitavas',        value: 'round_of_16' },

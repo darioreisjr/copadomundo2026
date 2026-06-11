@@ -114,10 +114,11 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
 
 import AppLayout from '@/components/AppLayout.vue'
 import GameCard from '@/components/GameCard.vue'
+import { getEffectiveStatus } from '@/composables/useBetWindow'
 import { useAuthStore }    from '@/stores/auth'
 import { useAvatarsStore } from '@/stores/avatars'
 import { useGamesStore } from '@/stores/games'
@@ -133,8 +134,15 @@ const gamesStore = useGamesStore()
 const betsStore = useBetsStore()
 const rankingStore = useRankingStore()
 
-const openGames     = computed(() => gamesStore.games.filter(g => g.status === 'open'))
-const upcomingGames = computed(() => gamesStore.games.filter(g => g.status === 'upcoming'))
+const nowTick = ref(Date.now())
+let nowTickTimer
+onMounted(() => {
+  nowTickTimer = setInterval(() => { nowTick.value = Date.now() }, 60000)
+})
+onUnmounted(() => clearInterval(nowTickTimer))
+
+const openGames     = computed(() => gamesStore.games.filter(g => getEffectiveStatus(g, nowTick.value) === 'open'))
+const upcomingGames = computed(() => gamesStore.games.filter(g => getEffectiveStatus(g, nowTick.value) === 'upcoming'))
 const finishedGames = computed(() => [...gamesStore.games].filter(g => g.status === 'finished').reverse())
 
 const betMap = computed(() => {
