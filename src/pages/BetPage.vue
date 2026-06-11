@@ -325,7 +325,9 @@ function hitLabel(type) {
 }
 function formatDate(dt) {
   if (!dt) return ''
-  return new Date(dt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+  const date = new Date(dt)
+  date.setHours(date.getHours() + 3)
+  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
 function callExpert() {

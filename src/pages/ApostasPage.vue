@@ -383,7 +383,9 @@ watch(showCreateDialog, (val) => {
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('pt-BR', {
+  const date = new Date(dateStr)
+  date.setHours(date.getHours() + 3)
+  return date.toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit',
     hour: '2-digit', minute: '2-digit',
   })
