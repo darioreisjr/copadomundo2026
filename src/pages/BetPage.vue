@@ -45,9 +45,9 @@
             </v-alert>
 
             <!-- Closed / Finished message -->
-            <template v-if="game.status !== 'open'">
+            <template v-if="!canBet">
               <v-alert type="warning" variant="tonal" class="mb-4">
-                Este jogo não está mais aberto para palpites.
+                {{ isBeforeOpen ? 'As apostas para este jogo ainda não abriram.' : 'Este jogo não está mais aberto para palpites.' }}
               </v-alert>
               <div v-if="existingBet" class="text-center">
                 <div class="text-subtitle-1">Seu palpite: <strong>{{ existingBet.score_a }} x {{ existingBet.score_b }}</strong></div>
@@ -279,6 +279,7 @@ import { useBetsStore } from '@/stores/bets'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useMatchAnalysis } from '@/composables/useMatchAnalysis'
+import { useBetWindow } from '@/composables/useBetWindow'
 
 const route      = useRoute()
 const gamesStore = useGamesStore()
@@ -309,8 +310,25 @@ const statusMap = {
   finished: { label: 'Finalizado', color: 'blue' },
 }
 
-const statusLabel = computed(() => statusMap[game.value?.status]?.label ?? '')
-const statusColor = computed(() => statusMap[game.value?.status]?.color ?? 'grey')
+const { isOpen: canBet, isBeforeOpen } = useBetWindow(game)
+
+const statusLabel = computed(() => {
+  if (['live', 'finished'].includes(game.value?.status)) {
+    return statusMap[game.value.status]?.label ?? ''
+  }
+  if (canBet.value) return statusMap.open.label
+  if (isBeforeOpen.value) return statusMap.upcoming.label
+  return statusMap.closed.label
+})
+
+const statusColor = computed(() => {
+  if (['live', 'finished'].includes(game.value?.status)) {
+    return statusMap[game.value.status]?.color ?? 'grey'
+  }
+  if (canBet.value) return statusMap.open.color
+  if (isBeforeOpen.value) return statusMap.upcoming.color
+  return statusMap.closed.color
+})
 
 const hasChanged = computed(() => {
   if (!existingBet.value) return true

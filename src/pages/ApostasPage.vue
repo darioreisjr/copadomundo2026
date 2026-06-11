@@ -297,6 +297,7 @@ import CriarApostaDialog from '@/components/CriarApostaDialog.vue'
 import { useApostasStore } from '@/stores/apostas'
 import { useBetsStore } from '@/stores/bets'
 import { useGamesStore } from '@/stores/games'
+import { useBetWindow } from '@/composables/useBetWindow'
 
 const route        = useRoute()
 const apostasStore = useApostasStore()
@@ -316,9 +317,15 @@ const selectedGameForCreate = ref(null)
 
 const snackbar = ref({ show: false, message: '', color: 'green-darken-3' })
 
+const { now } = useBetWindow(ref(null))
+
 const openGames = computed(() => {
+  const t = now.value
   return (gamesStore.games || [])
-    .filter(g => g.status === 'open')
+    .filter(g => {
+      if (!g.bet_opens_at || !g.bet_closes_at) return g.status === 'open'
+      return t >= new Date(g.bet_opens_at).getTime() && t < new Date(g.bet_closes_at).getTime()
+    })
     .map(g => ({
       ...g,
       label: `${g.flag_a || '🏳️'} ${g.team_a} vs ${g.team_b} ${g.flag_b || '🏳️'}`,

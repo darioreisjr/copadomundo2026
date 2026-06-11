@@ -124,7 +124,7 @@ begin
     new.bet_opens_at := new.match_date - interval '24 hours';
   end if;
   if new.bet_closes_at is null then
-    new.bet_closes_at := new.match_date;
+    new.bet_closes_at := new.match_date - interval '5 minutes';
   end if;
   return new;
 end;
@@ -139,6 +139,12 @@ drop trigger if exists before_game_update on public.games;
 create trigger before_game_update
   before update of match_date on public.games
   for each row execute procedure public.set_bet_window();
+
+-- Recalcula a janela de jogos já existentes (fecha apostas 5min antes do jogo)
+update public.games
+set bet_opens_at  = match_date - interval '24 hours',
+    bet_closes_at = match_date - interval '5 minutes'
+where bet_closes_at = match_date or bet_closes_at is null or bet_opens_at is null;
 
 -- ============================================================
 -- bets
@@ -167,10 +173,24 @@ create policy "bets: users read own" on public.bets
   for select using (auth.uid() = user_id);
 
 create policy "bets: users insert own" on public.bets
-  for insert with check (auth.uid() = user_id);
+  for insert with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.games g
+      where g.id = game_id
+        and now() between g.bet_opens_at and g.bet_closes_at
+    )
+  );
 
 create policy "bets: users update own" on public.bets
-  for update using (auth.uid() = user_id);
+  for update using (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.games g
+      where g.id = game_id
+        and now() between g.bet_opens_at and g.bet_closes_at
+    )
+  );
 
 create policy "bets: admin reads all" on public.bets
   for select using (

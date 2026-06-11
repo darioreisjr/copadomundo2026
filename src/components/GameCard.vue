@@ -34,7 +34,7 @@
     </div>
 
     <v-btn
-      v-if="game.status === 'open'"
+      v-if="canBet"
       :to="{ name: 'Bet', params: { id: game.id } }"
       color="green-darken-3"
       block
@@ -53,12 +53,15 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, toRef } from 'vue'
+import { useBetWindow } from '@/composables/useBetWindow'
 
 const props = defineProps({
   game: { type: Object, required: true },
   bet:  { type: Object, default: null },
 })
+
+const { isOpen, isBeforeOpen } = useBetWindow(toRef(props, 'game'))
 
 const statusMap = {
   upcoming: { label: 'Em breve',         color: 'grey' },
@@ -76,10 +79,28 @@ const phaseMap = {
   final:        'Final',
 }
 
-const statusLabel = computed(() => statusMap[props.game.status]?.label ?? props.game.status)
-const statusColor = computed(() => statusMap[props.game.status]?.color ?? 'grey')
+const canBet = computed(() => isOpen.value)
+
+const statusLabel = computed(() => {
+  if (['live', 'finished'].includes(props.game.status)) {
+    return statusMap[props.game.status]?.label ?? props.game.status
+  }
+  if (isOpen.value) return statusMap.open.label
+  if (isBeforeOpen.value) return statusMap.upcoming.label
+  return statusMap.closed.label
+})
+
+const statusColor = computed(() => {
+  if (['live', 'finished'].includes(props.game.status)) {
+    return statusMap[props.game.status]?.color ?? 'grey'
+  }
+  if (isOpen.value) return statusMap.open.color
+  if (isBeforeOpen.value) return statusMap.upcoming.color
+  return statusMap.closed.color
+})
+
 const phaseLabel  = computed(() => phaseMap[props.game.phase] ?? props.game.phase)
-const cardColor   = computed(() => props.game.status === 'open' ? 'bg-green-lighten-5' : '')
+const cardColor   = computed(() => isOpen.value ? 'bg-green-lighten-5' : '')
 
 const betChipColor = computed(() => {
   if (!props.bet?.hit_type) return 'grey'
