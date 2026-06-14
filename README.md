@@ -578,7 +578,7 @@ npm run preview  # Preview do build local
 | `/ranking-info` | RankingInfoPage | Público |
 | `/dashboard` | DashboardPage | Autenticado |
 | `/games` | GamesPage | Autenticado |
-| `/games/:id/bet` | BetPage | Autenticado |
+| `/games/:slug/bet` | BetPage | Autenticado |
 | `/ranking` | RankingPage | Autenticado |
 | `/apostas` | ApostasPage | Autenticado |
 | `/grupos` | MeusGruposPage | Autenticado |

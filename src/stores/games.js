@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
+import { gameSlug } from '@/utils/gameSlug'
 
 export const useGamesStore = defineStore('games', () => {
   const games = ref([])
@@ -17,14 +18,14 @@ export const useGamesStore = defineStore('games', () => {
     loading.value = false
   }
 
-  async function fetchGame(id) {
+  async function fetchGameBySlug(slug) {
     const { data, error } = await supabase
       .from('games')
       .select('*')
-      .eq('id', id)
-      .single()
     if (error) throw error
-    return data
+    const game = data.find(g => gameSlug(g) === slug)
+    if (!game) throw new Error('Jogo não encontrado')
+    return game
   }
 
   async function createGame(gameData) {
@@ -64,5 +65,5 @@ export const useGamesStore = defineStore('games', () => {
     await fetchGames()
   }
 
-  return { games, loading, fetchGames, fetchGame, createGame, updateGame, setResult }
+  return { games, loading, fetchGames, fetchGameBySlug, createGame, updateGame, setResult }
 })

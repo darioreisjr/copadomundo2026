@@ -35,7 +35,7 @@
 
     <v-btn
       v-if="canBet"
-      :to="{ name: 'Bet', params: { id: game.id } }"
+      :to="{ name: 'Bet', params: { slug } }"
       color="green-darken-3"
       block
       size="small"
@@ -55,6 +55,8 @@
 <script setup>
 import { computed, toRef } from 'vue'
 import { useBetWindow, getEffectiveStatus } from '@/composables/useBetWindow'
+import { gameSlug } from '@/utils/gameSlug'
+import { phaseMap } from '@/utils/phaseMap'
 
 const props = defineProps({
   game: { type: Object, required: true },
@@ -71,15 +73,9 @@ const statusMap = {
   finished: { label: 'Finalizado',       color: 'blue' },
 }
 
-const phaseMap = {
-  group:        'Fase de grupos',
-  round_of_16:  'Oitavas',
-  quarter:      'Quartas',
-  semi:         'Semifinal',
-  final:        'Final',
-}
-
 const canBet = computed(() => isOpen.value)
+
+const slug = computed(() => gameSlug(props.game))
 
 const effectiveStatus = computed(() => getEffectiveStatus(props.game, now.value))
 

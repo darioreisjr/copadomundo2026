@@ -21,6 +21,10 @@
 
         <v-progress-linear v-if="loading" indeterminate color="green-darken-3" class="mb-4" />
 
+        <v-alert v-if="!loading && !game" type="warning" variant="tonal">
+          Jogo não encontrado.
+        </v-alert>
+
         <template v-if="game">
           <v-card class="pa-6" elevation="4">
             <!-- Teams header -->
@@ -418,19 +422,23 @@ async function handleSave() {
 }
 
 onMounted(async () => {
-  game.value = await gamesStore.fetchGame(route.params.id)
-  existingBet.value = await betsStore.getBetForGame(route.params.id)
+  try {
+    game.value = await gamesStore.fetchGameBySlug(route.params.slug)
+  } catch {
+    loading.value = false
+    return
+  }
+
+  existingBet.value = await betsStore.getBetForGame(game.value.id)
   if (existingBet.value) {
     scoreA.value = existingBet.value.score_a
     scoreB.value = existingBet.value.score_b
   }
   loading.value = false
 
-  if (game.value) {
-    alreadyPaidExpert.value = await betsStore.hasCalledExpert(game.value.id)
-    if (alreadyPaidExpert.value) {
-      await loadAnalysis(game.value.id, game.value.team_a, game.value.team_b)
-    }
+  alreadyPaidExpert.value = await betsStore.hasCalledExpert(game.value.id)
+  if (alreadyPaidExpert.value) {
+    await loadAnalysis(game.value.id, game.value.team_a, game.value.team_b)
   }
 })
 </script>

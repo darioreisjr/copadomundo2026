@@ -375,6 +375,7 @@ import { getEffectiveStatus } from '@/composables/useBetWindow'
 import { useGamesStore } from '@/stores/games'
 import { enrichTeams } from '@/lib/gemini'
 import { fetchWorldCupMatches } from '@/lib/footballApi'
+import { phaseMap } from '@/utils/phaseMap'
 
 const gamesStore = useGamesStore()
 
@@ -481,9 +482,6 @@ async function confirmGames() {
 }
 
 // --- Games tab ---
-const phaseMap = {
-  group: 'Fase de grupos', round_of_16: 'Oitavas', quarter: 'Quartas', semi: 'Semifinal', final: 'Final',
-}
 const statusOptions = [
   { title: 'Em breve',   value: 'upcoming' },
   { title: 'Aberto',     value: 'open' },
