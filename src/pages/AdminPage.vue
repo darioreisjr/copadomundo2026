@@ -29,28 +29,15 @@
     <v-window v-model="tab">
       <v-window-item value="gemini">
         <!-- Estado vazio: nenhuma ação iniciada e sem resultado anterior -->
-        <div
+        <EmptyState
           v-if="!geminiLoading && !suggestedGames.length && !syncResult && !geminiError"
-          class="d-flex flex-column align-center justify-center text-center"
-          style="min-height: calc(100vh - 200px);"
-        >
-          <v-icon icon="mdi-cloud-download-outline" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
-          <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
-            Importar jogos da Copa do Mundo 2026
-          </p>
-          <p class="text-body-2 text-medium-emphasis mb-6" style="max-width:400px">
-            Os jogos são buscados do calendário oficial da FIFA via OpenFootball. O Gemini adiciona traduções e emojis de bandeiras. Revise os dados antes de salvar.
-          </p>
-          <v-btn
-            color="green-darken-3"
-            prepend-icon="mdi-soccer"
-            size="large"
-            rounded="lg"
-            @click="callGemini"
-          >
-            Importar jogos
-          </v-btn>
-        </div>
+          icon="mdi-cloud-download-outline"
+          title="Importar jogos da Copa do Mundo 2026"
+          description="Os jogos são buscados do calendário oficial da FIFA via OpenFootball. O Gemini adiciona traduções e emojis de bandeiras. Revise os dados antes de salvar."
+          action-text="Importar jogos"
+          action-icon="mdi-soccer"
+          @action="callGemini"
+        />
 
         <!-- Loading -->
         <div
@@ -150,38 +137,21 @@
         <v-progress-linear v-if="gamesStore.loading" indeterminate color="green-darken-3" class="mb-4" />
 
         <!-- Estado vazio -->
-        <div
-          v-else-if="!gamesStore.games.length"
-          class="d-flex flex-column align-center justify-center text-center"
-          style="min-height: calc(100vh - 200px);"
-        >
-          <v-icon icon="mdi-calendar-blank-outline" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
-          <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
-            Nenhum jogo cadastrado
-          </p>
-          <p class="text-body-2 text-medium-emphasis mb-6" style="max-width:360px">
-            Adicione jogos manualmente ou use a aba "Importar jogos" para buscar o calendário oficial da Copa 2026.
-          </p>
-          <div class="d-flex ga-3">
-            <v-btn
-              color="green-darken-3"
-              prepend-icon="mdi-plus"
-              size="large"
-              rounded="lg"
-              @click="openNewGameDialog"
-            >
-              Novo jogo
-            </v-btn>
-            <v-btn
-              variant="tonal"
-              prepend-icon="mdi-cloud-download-outline"
-              size="large"
-              rounded="lg"
-              @click="tab = 'gemini'"
-            >
-              Importar jogos
-            </v-btn>
-          </div>
+        <div v-else-if="!gamesStore.games.length">
+          <EmptyState
+            icon="mdi-calendar-blank-outline"
+            title="Nenhum jogo cadastrado"
+            description='Adicione jogos manualmente ou use a aba "Importar jogos" para buscar o calendário oficial da Copa 2026.'
+          >
+            <div class="d-flex ga-3">
+              <v-btn color="green-darken-3" prepend-icon="mdi-plus" size="large" rounded="lg" @click="openNewGameDialog">
+                Novo jogo
+              </v-btn>
+              <v-btn variant="tonal" prepend-icon="mdi-cloud-download-outline" size="large" rounded="lg" @click="tab = 'gemini'">
+                Importar jogos
+              </v-btn>
+            </div>
+          </EmptyState>
         </div>
 
         <!-- Tabela com jogos -->
@@ -243,28 +213,16 @@
         <v-progress-linear v-if="gamesStore.loading" indeterminate color="green-darken-3" class="mb-4" />
 
         <!-- Estado vazio -->
-        <div
+        <EmptyState
           v-else-if="!pendingResults.length"
-          class="d-flex flex-column align-center justify-center text-center"
-          style="min-height: calc(100vh - 200px);"
-        >
-          <v-icon icon="mdi-scoreboard-outline" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
-          <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
-            Nenhum resultado para inserir
-          </p>
-          <p class="text-body-2 text-medium-emphasis mb-6" style="max-width:380px">
-            Os jogos aparecerão aqui assim que estiverem com status "Ao vivo" ou "Encerrado". Gerencie os status na aba "Gerenciar jogos".
-          </p>
-          <v-btn
-            variant="tonal"
-            prepend-icon="mdi-calendar-check-outline"
-            size="large"
-            rounded="lg"
-            @click="tab = 'games'"
-          >
-            Gerenciar jogos
-          </v-btn>
-        </div>
+          icon="mdi-scoreboard-outline"
+          title="Nenhum resultado para inserir"
+          description='Os jogos aparecerão aqui assim que estiverem com status "Ao vivo" ou "Encerrado". Gerencie os status na aba "Gerenciar jogos".'
+          action-text="Gerenciar jogos"
+          action-icon="mdi-calendar-check-outline"
+          action-variant="tonal"
+          @action="tab = 'games'"
+        />
 
         <!-- Tabela de resultados -->
         <v-card v-else class="pa-6" elevation="2">
@@ -371,11 +329,13 @@
 <script setup>
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import { getEffectiveStatus } from '@/composables/useBetWindow'
 import { useGamesStore } from '@/stores/games'
 import { enrichTeams } from '@/lib/gemini'
 import { fetchWorldCupMatches } from '@/lib/footballApi'
 import { phaseMap } from '@/utils/phaseMap'
+import { formatDate } from '@/composables/useDateFormat'
 
 const gamesStore = useGamesStore()
 
@@ -588,11 +548,6 @@ async function saveResult(game) {
   } finally {
     savingResult[game.id] = false
   }
-}
-
-function formatDate(dt) {
-  if (!dt) return ''
-  return new Date(dt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
 onMounted(() => gamesStore.fetchGames())

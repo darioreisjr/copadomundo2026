@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { uploadToStorage } from '@/lib/uploadToStorage'
 
 export const useAvatarsStore = defineStore('avatars', () => {
   const avatars           = ref([])
@@ -87,14 +88,7 @@ export const useAvatarsStore = defineStore('avatars', () => {
   }
 
   async function uploadAvatarImage(file) {
-    const ext      = file.name.split('.').pop()
-    const filename = `${crypto.randomUUID()}.${ext}`
-    const { error: uploadErr } = await supabase.storage
-      .from('avatars')
-      .upload(filename, file, { upsert: false })
-    if (uploadErr) throw uploadErr
-    const { data } = supabase.storage.from('avatars').getPublicUrl(filename)
-    return data.publicUrl
+    return uploadToStorage('avatars', file)
   }
 
   return {

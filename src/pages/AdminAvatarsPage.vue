@@ -21,34 +21,15 @@
     />
 
     <!-- Estado vazio -->
-    <div
+    <EmptyState
       v-else-if="!avatarsStore.avatars.length"
-      class="d-flex flex-column align-center justify-center text-center"
-      style="min-height: calc(100vh - 200px);"
-    >
-      <v-icon
-        icon="mdi-account-circle-outline"
-        size="80"
-        color="green-darken-2"
-        style="opacity:.35"
-        class="mb-6"
-      />
-      <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
-        Nenhum avatar cadastrado
-      </p>
-      <p class="text-body-2 text-medium-emphasis mb-6" style="max-width:360px">
-        Adicione avatares que os usuários poderão escolher para seu perfil.
-      </p>
-      <v-btn
-        color="green-darken-3"
-        prepend-icon="mdi-plus"
-        size="large"
-        rounded="lg"
-        @click="openNewDialog"
-      >
-        Novo Avatar
-      </v-btn>
-    </div>
+      icon="mdi-account-circle-outline"
+      title="Nenhum avatar cadastrado"
+      description="Adicione avatares que os usuários poderão escolher para seu perfil."
+      action-text="Novo Avatar"
+      action-icon="mdi-plus"
+      @action="openNewDialog"
+    />
 
     <!-- Tabela -->
     <v-card v-else elevation="2" class="pa-4">
@@ -400,6 +381,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import { useAvatarsStore } from '@/stores/avatars'
 import { useToastStore }   from '@/stores/toast'
 

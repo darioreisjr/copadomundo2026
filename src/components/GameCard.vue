@@ -57,6 +57,8 @@ import { computed, toRef } from 'vue'
 import { useBetWindow, getEffectiveStatus } from '@/composables/useBetWindow'
 import { gameSlug } from '@/utils/gameSlug'
 import { phaseMap } from '@/utils/phaseMap'
+import { formatDate } from '@/composables/useDateFormat'
+import { hitColor, hitLabel } from '@/composables/useHitType'
 
 const props = defineProps({
   game: { type: Object, required: true },
@@ -91,18 +93,4 @@ const betChipColor = computed(() => {
   return hitColor(props.bet.hit_type)
 })
 
-function hitColor(type) {
-  return type === 'exact' ? 'green' : type === 'winner' ? 'blue' : type === 'draw' ? 'orange' : 'grey'
-}
-
-function hitLabel(type) {
-  return type === 'exact' ? 'Placar exato' : type === 'winner' ? 'Vencedor' : type === 'draw' ? 'Empate' : 'Errou'
-}
-
-function formatDate(dt) {
-  if (!dt) return ''
-  const date = new Date(dt)
-  date.setHours(date.getHours() + 3)
-  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-}
 </script>

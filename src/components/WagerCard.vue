@@ -142,6 +142,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { formatDate } from '@/composables/useDateFormat'
 
 const props = defineProps({
   wager:      { type: Object, required: true },
@@ -206,14 +207,6 @@ const targetDisplay = computed(() => {
   const t = props.wager.target
   return t?.nome_fantasia || t?.name || (t?.username ? `@${t.username}` : 'Usuário')
 })
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('pt-BR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
 
 async function handleAccept() {
   accepting.value = true

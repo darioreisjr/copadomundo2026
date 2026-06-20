@@ -80,34 +80,17 @@
     </v-row>
 
     <!-- Estado vazio -->
-    <div
+    <EmptyState
       v-if="!store.loading && !store.rewards.length"
-      class="d-flex flex-column align-center justify-center text-center"
-      style="min-height: calc(100vh - 280px);"
-    >
-      <v-icon
-        icon="mdi-seal"
-        size="80"
-        color="amber-darken-2"
-        style="opacity:.3"
-        class="mb-6"
-      />
-      <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
-        Nenhum evento cadastrado
-      </p>
-      <p class="text-body-2 text-medium-emphasis mb-6" style="max-width:380px">
-        Cadastre os eventos e defina quantos selos cada ação concede aos jogadores.
-      </p>
-      <v-btn
-        color="green-darken-3"
-        prepend-icon="mdi-plus"
-        size="large"
-        rounded="lg"
-        @click="openNewDialog"
-      >
-        Novo Evento
-      </v-btn>
-    </div>
+      icon="mdi-seal"
+      icon-color="amber-darken-2"
+      title="Nenhum evento cadastrado"
+      description="Cadastre os eventos e defina quantos selos cada ação concede aos jogadores."
+      action-text="Novo Evento"
+      action-icon="mdi-plus"
+      min-height="calc(100vh - 280px)"
+      @action="openNewDialog"
+    />
 
     <!-- Tabela -->
     <v-card v-if="!store.loading && store.rewards.length" elevation="2" class="pa-4">
@@ -389,6 +372,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import { useSealRewardsStore } from '@/stores/sealRewards'
 import { useToastStore } from '@/stores/toast'
 

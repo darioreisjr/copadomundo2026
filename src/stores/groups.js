@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { uploadToStorage } from '@/lib/uploadToStorage'
 
 const GROUP_JOIN_COST = 30
 const FREE_MEMBERSHIPS = 2
@@ -15,7 +16,7 @@ export const useGroupsStore = defineStore('groups', () => {
 
   // Conta grupos onde o usuário é membro ativo mas NÃO é dono
   async function countMyMemberships() {
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = useAuthStore().user
     const { data, error } = await supabase
       .from('group_members')
       .select('group_id, groups!inner(owner_id)')
@@ -41,7 +42,7 @@ export const useGroupsStore = defineStore('groups', () => {
       err.code = 'insufficient_seals'
       throw err
     }
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = auth.user
     const { error } = await supabase.from('profiles')
       .update({ total_seals: seals - GROUP_JOIN_COST })
       .eq('id', user.id)
@@ -52,13 +53,14 @@ export const useGroupsStore = defineStore('groups', () => {
 
   async function fetchMyGroups() {
     loading.value = true
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = useAuthStore().user
 
     // Grupos que sou dono
     const { data: owned, error: e1 } = await supabase
       .from('groups')
       .select('*, group_members(id, user_id, status, invited_by, profiles:user_id(name, username, avatar_url))')
       .eq('owner_id', user.id)
+      .limit(100)
 
     if (e1) throw e1
 
@@ -69,6 +71,7 @@ export const useGroupsStore = defineStore('groups', () => {
       .eq('user_id', user.id)
       .eq('status', 'active')
       .neq('groups.owner_id', user.id)
+      .limit(100)
 
     if (e2) throw e2
 
@@ -81,7 +84,7 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function fetchPendingInvites() {
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = useAuthStore().user
     const { data, error } = await supabase
       .from('group_members')
       .select('id, group_id, created_at, groups(id, name), profiles:invited_by(name, username)')
@@ -93,14 +96,7 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function uploadGroupImage(file) {
-    const ext      = file.name.split('.').pop()
-    const filename = `${crypto.randomUUID()}.${ext}`
-    const { error: uploadErr } = await supabase.storage
-      .from('group-images')
-      .upload(filename, file, { upsert: false })
-    if (uploadErr) throw uploadErr
-    const { data } = supabase.storage.from('group-images').getPublicUrl(filename)
-    return data.publicUrl
+    return uploadToStorage('group-images', file)
   }
 
   async function createGroup({ name, description, is_public, image_url }) {
@@ -113,7 +109,7 @@ export const useGroupsStore = defineStore('groups', () => {
       throw err
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = useAuthStore().user
     const { data: group, error } = await supabase
       .from('groups')
       .insert({ name, description: description || null, is_public: !!is_public, image_url: image_url || null, owner_id: user.id, max_slots: 5 })
@@ -164,7 +160,7 @@ export const useGroupsStore = defineStore('groups', () => {
       throw err
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = useAuthStore().user
 
     if (profile.id === user.id) {
       const err = new Error('Você não pode convidar a si mesmo.')
@@ -241,7 +237,7 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function leaveGroup(groupId) {
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = useAuthStore().user
     const { error } = await supabase
       .from('group_members')
       .delete()
@@ -371,7 +367,7 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function joinGroup(groupId) {
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = useAuthStore().user
     const currentCount = await countMyMemberships()
     // Grupo público: entrada imediata, cobra direto se acima do limite gratuito
     await lockSealsIfNeeded(currentCount)
@@ -383,7 +379,7 @@ export const useGroupsStore = defineStore('groups', () => {
   }
 
   async function requestToJoin(groupId) {
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = useAuthStore().user
     const currentCount = await countMyMemberships()
     // Bloqueia selos antes de inserir; devolve se o insert falhar
     const locked = await lockSealsIfNeeded(currentCount)
@@ -504,7 +500,7 @@ export const useGroupsStore = defineStore('groups', () => {
       throw err
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = auth.user
 
     const { data: groupData, error: eRead } = await supabase
       .from('groups').select('max_slots').eq('id', groupId).eq('owner_id', user.id).single()

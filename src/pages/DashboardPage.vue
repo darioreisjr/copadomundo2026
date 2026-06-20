@@ -56,19 +56,13 @@
 
 
     <!-- Estado vazio global: nenhum jogo cadastrado -->
-    <div
+    <EmptyState
       v-if="!gamesStore.loading && !gamesStore.games.length"
-      class="d-flex flex-column align-center justify-center text-center"
-      style="min-height: calc(100vh - 260px);"
-    >
-      <v-icon icon="mdi-soccer" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
-      <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
-        Nenhum jogo disponível ainda
-      </p>
-      <p class="text-body-2 text-medium-emphasis" style="max-width:360px">
-        Os jogos da Copa do Mundo 2026 ainda não foram cadastrados. Volte em breve!
-      </p>
-    </div>
+      icon="mdi-soccer"
+      title="Nenhum jogo disponível ainda"
+      description="Os jogos da Copa do Mundo 2026 ainda não foram cadastrados. Volte em breve!"
+      min-height="calc(100vh - 260px)"
+    />
 
     <template v-else>
       <!-- Open for betting -->
@@ -78,11 +72,16 @@
           <GameCard :game="game" :bet="betMap[game.id]" />
         </v-col>
       </v-row>
-      <div v-else class="d-flex flex-column align-center justify-center text-center py-10 mb-6">
-        <v-icon icon="mdi-timer-sand" size="56" color="green-darken-2" style="opacity:.35" class="mb-4" />
-        <p class="text-body-1 font-weight-medium text-medium-emphasis mb-1">Nenhum jogo aberto para palpite</p>
-        <p class="text-body-2 text-medium-emphasis">Aguarde — os jogos serão liberados em breve.</p>
-      </div>
+      <EmptyState
+        v-else
+        icon="mdi-timer-sand"
+        title="Nenhum jogo aberto para palpite"
+        description="Aguarde — os jogos serão liberados em breve."
+        min-height="auto"
+        icon-size="56"
+        title-class="text-body-1"
+        class="py-10 mb-6"
+      />
 
       <!-- Upcoming games -->
       <div class="text-h6 font-weight-medium mb-3">Próximos jogos</div>
@@ -91,11 +90,16 @@
           <GameCard :game="game" :bet="betMap[game.id]" />
         </v-col>
       </v-row>
-      <div v-else class="d-flex flex-column align-center justify-center text-center py-10 mb-6">
-        <v-icon icon="mdi-calendar-blank-outline" size="56" color="green-darken-2" style="opacity:.35" class="mb-4" />
-        <p class="text-body-1 font-weight-medium text-medium-emphasis mb-1">Nenhum jogo agendado</p>
-        <p class="text-body-2 text-medium-emphasis">O calendário ainda não foi publicado.</p>
-      </div>
+      <EmptyState
+        v-else
+        icon="mdi-calendar-blank-outline"
+        title="Nenhum jogo agendado"
+        description="O calendário ainda não foi publicado."
+        min-height="auto"
+        icon-size="56"
+        title-class="text-body-1"
+        class="py-10 mb-6"
+      />
 
       <!-- Recent results -->
       <div class="text-h6 font-weight-medium mb-3">Últimos resultados</div>
@@ -104,11 +108,16 @@
           <GameCard :game="game" :bet="betMap[game.id]" />
         </v-col>
       </v-row>
-      <div v-else class="d-flex flex-column align-center justify-center text-center py-10">
-        <v-icon icon="mdi-flag-checkered" size="56" color="green-darken-2" style="opacity:.35" class="mb-4" />
-        <p class="text-body-1 font-weight-medium text-medium-emphasis mb-1">Nenhum resultado registrado</p>
-        <p class="text-body-2 text-medium-emphasis">Os resultados aparecerão aqui após os jogos.</p>
-      </div>
+      <EmptyState
+        v-else
+        icon="mdi-flag-checkered"
+        title="Nenhum resultado registrado"
+        description="Os resultados aparecerão aqui após os jogos."
+        min-height="auto"
+        icon-size="56"
+        title-class="text-body-1"
+        class="py-10"
+      />
     </template>
   </AppLayout>
 </template>
@@ -118,6 +127,7 @@ import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
 
 import AppLayout from '@/components/AppLayout.vue'
 import GameCard from '@/components/GameCard.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import { getEffectiveStatus } from '@/composables/useBetWindow'
 import { useAuthStore }    from '@/stores/auth'
 import { useAvatarsStore } from '@/stores/avatars'

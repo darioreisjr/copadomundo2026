@@ -284,6 +284,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useMatchAnalysis } from '@/composables/useMatchAnalysis'
 import { useBetWindow } from '@/composables/useBetWindow'
+import { formatDate } from '@/composables/useDateFormat'
+import { hitColor, hitLabel } from '@/composables/useHitType'
 
 const route      = useRoute()
 const gamesStore = useGamesStore()
@@ -339,18 +341,6 @@ const hasChanged = computed(() => {
   return scoreA.value !== existingBet.value.score_a || scoreB.value !== existingBet.value.score_b
 })
 
-function hitColor(type) {
-  return type === 'exact' ? 'green' : type === 'winner' ? 'blue' : type === 'draw' ? 'orange' : 'grey'
-}
-function hitLabel(type) {
-  return type === 'exact' ? 'Placar exato' : type === 'winner' ? 'Vencedor certo' : type === 'draw' ? 'Empate certo' : 'Errou'
-}
-function formatDate(dt) {
-  if (!dt) return ''
-  const date = new Date(dt)
-  date.setHours(date.getHours() + 3)
-  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-}
 
 function callExpert() {
   if ((authStore.profile?.total_seals ?? 0) < 20) {

@@ -45,42 +45,25 @@
     </v-row>
 
     <!-- Sem jogos no sistema -->
-    <div
+    <EmptyState
       v-else-if="!gamesStore.loading && !gamesStore.games.length"
-      class="d-flex flex-column align-center justify-center text-center"
-      style="min-height: calc(100vh - 200px);"
-    >
-      <v-icon icon="mdi-soccer" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
-      <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
-        Nenhum jogo disponível ainda
-      </p>
-      <p class="text-body-2 text-medium-emphasis" style="max-width:360px">
-        Os jogos da Copa do Mundo 2026 ainda não foram cadastrados. Volte em breve!
-      </p>
-    </div>
+      icon="mdi-soccer"
+      title="Nenhum jogo disponível ainda"
+      description="Os jogos da Copa do Mundo 2026 ainda não foram cadastrados. Volte em breve!"
+    />
 
     <!-- Filtros sem resultado -->
-    <div
+    <EmptyState
       v-else-if="!gamesStore.loading"
-      class="d-flex flex-column align-center justify-center text-center"
-      style="min-height: calc(100vh - 200px);"
-    >
-      <v-icon icon="mdi-magnify-remove-outline" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
-      <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">
-        Nenhum jogo encontrado
-      </p>
-      <p class="text-body-2 text-medium-emphasis mb-6" style="max-width:360px">
-        Nenhum jogo corresponde aos filtros selecionados. Tente ajustar a busca.
-      </p>
-      <v-btn
-        variant="tonal"
-        prepend-icon="mdi-filter-remove-outline"
-        rounded="lg"
-        @click="filterStatus = null; filterPhase = null; search = ''"
-      >
-        Limpar filtros
-      </v-btn>
-    </div>
+      icon="mdi-magnify-remove-outline"
+      title="Nenhum jogo encontrado"
+      description="Nenhum jogo corresponde aos filtros selecionados. Tente ajustar a busca."
+      action-text="Limpar filtros"
+      action-icon="mdi-filter-remove-outline"
+      action-variant="tonal"
+      action-size="default"
+      @action="filterStatus = null; filterPhase = null; search = ''"
+    />
   </AppLayout>
 </template>
 
@@ -88,6 +71,7 @@
 import { ref, computed, onMounted } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import GameCard from '@/components/GameCard.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import { useGamesStore } from '@/stores/games'
 import { useBetsStore } from '@/stores/bets'
 

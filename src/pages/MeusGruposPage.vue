@@ -98,27 +98,18 @@
     </template>
 
     <!-- Estado vazio -->
-    <div
+    <EmptyState
       v-else-if="!groups.loading"
-      class="empty-state d-flex flex-column align-center justify-center text-center"
-      style="min-height: calc(100vh - 120px);"
-    >
-      <v-icon icon="mdi-account-group-outline" size="80" color="green-darken-2" style="opacity:.35" class="mb-6" />
-      <p class="text-h6 font-weight-medium text-medium-emphasis mb-2">Nenhum grupo ainda</p>
-      <p class="text-body-2 text-medium-emphasis" style="max-width:360px">
-        Crie seu próprio grupo ou encontre grupos públicos para participar!
-      </p>
-      <v-btn
-        color="green-darken-2"
-        variant="tonal"
-        prepend-icon="mdi-magnify"
-        rounded="lg"
-        class="mt-6"
-        @click="searchDialog = true"
-      >
-        Entrar em grupo
-      </v-btn>
-    </div>
+      icon="mdi-account-group-outline"
+      title="Nenhum grupo ainda"
+      description="Crie seu próprio grupo ou encontre grupos públicos para participar!"
+      action-text="Entrar em grupo"
+      action-icon="mdi-magnify"
+      action-color="green-darken-2"
+      action-variant="tonal"
+      min-height="calc(100vh - 120px)"
+      @action="searchDialog = true"
+    />
 
     <!-- Modal: buscar grupo público -->
     <v-dialog v-model="searchDialog" max-width="480">
@@ -284,6 +275,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import { useGroupsStore } from '@/stores/groups'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'

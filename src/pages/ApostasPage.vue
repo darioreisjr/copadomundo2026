@@ -155,19 +155,21 @@
             </template>
 
             <!-- Vazio -->
-            <div
+            <EmptyState
               v-if="!apostasStore.loading && apostasStore.myWagers.length === 0"
-              class="text-center py-10"
-            >
-              <v-icon icon="mdi-handshake-outline" size="48" color="grey-lighten-1" class="mb-3" />
-              <div class="text-body-1 text-medium-emphasis">Você ainda não tem apostas.</div>
-              <div class="text-caption text-medium-emphasis mb-4">
-                Crie uma aposta ou aceite uma disponível.
-              </div>
-              <v-btn color="green-darken-3" variant="flat" prepend-icon="mdi-plus" @click="showCreateDialog = true">
-                Criar Aposta
-              </v-btn>
-            </div>
+              icon="mdi-handshake-outline"
+              icon-color="grey-lighten-1"
+              icon-size="48"
+              title-class="text-body-1"
+              title="Você ainda não tem apostas."
+              description="Crie uma aposta ou aceite uma disponível."
+              action-text="Criar Aposta"
+              action-icon="mdi-plus"
+              action-variant="flat"
+              min-height="auto"
+              class="py-10"
+              @action="showCreateDialog = true"
+            />
           </div>
         </v-window-item>
 
@@ -202,13 +204,16 @@
               </v-col>
             </v-row>
 
-            <div
+            <EmptyState
               v-if="!apostasStore.loading && apostasStore.openWagers.length === 0"
-              class="text-center py-10"
-            >
-              <v-icon icon="mdi-earth-off" size="48" color="grey-lighten-1" class="mb-3" />
-              <div class="text-body-1 text-medium-emphasis">Nenhuma aposta aberta no momento.</div>
-            </div>
+              icon="mdi-earth-off"
+              icon-color="grey-lighten-1"
+              icon-size="48"
+              title-class="text-body-1"
+              title="Nenhuma aposta aberta no momento."
+              min-height="auto"
+              class="py-10"
+            />
           </div>
         </v-window-item>
 
@@ -228,13 +233,16 @@
               </v-col>
             </v-row>
 
-            <div
+            <EmptyState
               v-if="!apostasStore.loading && apostasStore.directChallenges.length === 0"
-              class="text-center py-10"
-            >
-              <v-icon icon="mdi-sword-cross" size="48" color="grey-lighten-1" class="mb-3" />
-              <div class="text-body-1 text-medium-emphasis">Nenhum desafio direto pendente.</div>
-            </div>
+              icon="mdi-sword-cross"
+              icon-color="grey-lighten-1"
+              icon-size="48"
+              title-class="text-body-1"
+              title="Nenhum desafio direto pendente."
+              min-height="auto"
+              class="py-10"
+            />
           </div>
         </v-window-item>
 
@@ -294,10 +302,12 @@ import { useRoute } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import WagerCard from '@/components/WagerCard.vue'
 import CriarApostaDialog from '@/components/CriarApostaDialog.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import { useApostasStore } from '@/stores/apostas'
 import { useBetsStore } from '@/stores/bets'
 import { useGamesStore } from '@/stores/games'
 import { useBetWindow } from '@/composables/useBetWindow'
+import { formatDate } from '@/composables/useDateFormat'
 
 const route        = useRoute()
 const apostasStore = useApostasStore()
@@ -387,16 +397,6 @@ watch(showCreateDialog, (val) => {
     selectedGameForCreate.value = null
   }
 })
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  date.setHours(date.getHours() + 3)
-  return date.toLocaleString('pt-BR', {
-    day: '2-digit', month: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
 
 onMounted(async () => {
   // Inicializar jogos e palpites para verificar hasPalpite
